@@ -1,7 +1,7 @@
 package sinks
 
 import (
-	"github.com/chenziliang/dataloader/models"
+	"gitlab.com/chenziliang/dataloader/models"
 
 	"github.com/pkg/errors"
 	"go.uber.org/zap"

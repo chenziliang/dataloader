@@ -3,16 +3,17 @@ package main
 import (
 	"fmt"
 	"os"
-	_ "time"
 
+	"gitlab.com/chenziliang/dataloader/models"
+	"gitlab.com/chenziliang/dataloader/sinks"
+
+	// side effects
+	_ "gitlab.com/chenziliang/dataloader/sinks/clickhouse"
+
+	// side effects
 	_ "github.com/ClickHouse/clickhouse-go"
-	_ "github.com/jmoiron/sqlx"
 
-	"github.com/chenziliang/dataloader/models"
-	"github.com/chenziliang/dataloader/sinks"
-	_ "github.com/chenziliang/dataloader/sinks/clickhouse"
 	"gitlab.com/chenziliang/pkg-go/utils"
-
 	"go.uber.org/zap"
 	"gopkg.in/alecthomas/kingpin.v2"
 )

@@ -1,4 +1,4 @@
-module github.com/chenziliang/dataloader
+module gitlab.com/chenziliang/dataloader
 
 go 1.13
 

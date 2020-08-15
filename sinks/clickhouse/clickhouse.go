@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/chenziliang/dataloader/models"
-	"github.com/chenziliang/dataloader/sinks"
+	"gitlab.com/chenziliang/dataloader/models"
+	"gitlab.com/chenziliang/dataloader/sinks"
 
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
@@ -42,19 +42,23 @@ func NewClickHouse(config *models.Config, logger *zap.Logger) (sinks.Sink, error
 
 func getConnectionURL(config *models.ServerConfig) (string, error) {
 	url := fmt.Sprintf("tcp://%s", config.Addresses[0])
-	if config.Cred.Ctx == nil {
-		return url, nil
-	}
 
 	var params []string
 
-	cred, ok := config.Cred.Ctx.(map[interface{}]interface{})
-	if ok {
-		for k, v := range cred {
-			kk, okk := k.(string)
-			vv, okv := v.(string)
-			if okk && okv {
-				params = append(params, fmt.Sprintf("%s=%s", kk, vv))
+	altHosts := strings.Join(config.Addresses[1:], ",")
+	if len(altHosts) > 0 {
+		params = append(params, altHosts)
+	}
+
+	if config.Cred.Ctx != nil {
+		cred, ok := config.Cred.Ctx.(map[interface{}]interface{})
+		if ok {
+			for k, v := range cred {
+				kk, okk := k.(string)
+				vv, okv := v.(string)
+				if okk && okv {
+					params = append(params, fmt.Sprintf("%s=%s", kk, vv))
+				}
 			}
 		}
 	}
