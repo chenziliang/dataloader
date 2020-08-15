@@ -1,0 +1,15 @@
+sink:
+  type: clickhouse
+  addresses: 
+    - 13.52.251.59:9000
+  cred:
+    type: basic_auth
+    context:
+      username: default
+      password: admin
+  context: 
+settings:
+  concurrency: 1
+  batch_size: 1000
+log:
+  level: INFO
