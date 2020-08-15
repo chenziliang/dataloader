@@ -9,6 +9,7 @@ import (
 
 type Sink interface {
 	LoadData()
+	Stop()
 }
 
 var globalSinkFactory = make(map[string]func(*models.Config, *zap.Logger) (Sink, error))

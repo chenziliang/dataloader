@@ -60,13 +60,29 @@ func (sc *ServerConfig) Validate() error {
 }
 
 type Settings struct {
-	Concurrency uint32 `yaml:"concurrency"`
-	BatchSize   uint32 `yaml:"batch_size"`
+	Concurrency   uint32 `yaml:"concurrency"`
+	BatchSize     uint32 `yaml:"batch_size"`
+	Interval      uint32 `yaml:"interval"`
+	BackFill      uint32 `yaml:"backfill"`
+	TotalEntities uint32 `yaml:"total_entities"`
 }
 
 func (s *Settings) SetDefaults() *Settings {
-	s.Concurrency = 1
-	s.BatchSize = 1000
+	if s.Concurrency == 0 {
+		s.Concurrency = 1
+	}
+
+	if s.BatchSize == 0 {
+		s.BatchSize = 1000
+	}
+
+	if s.Interval == 0 {
+		s.Interval = 5
+	}
+
+	if s.TotalEntities == 0 {
+		s.TotalEntities = 1
+	}
 	return s
 }
 

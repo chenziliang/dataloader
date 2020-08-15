@@ -11,5 +11,11 @@ sink:
 settings:
   concurrency: 1
   batch_size: 1000
+  # interval is in seconds
+  interval: 5
+  # backfill is in hours
+  backfill: 24 
+  # total emulated enties, hosts, devices etc
+  total_entities: 100000
 log:
   level: INFO
