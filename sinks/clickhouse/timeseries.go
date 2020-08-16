@@ -55,16 +55,16 @@ func newTimeSeriesTable(db *sqlx.DB) error {
 // (24, 106) -> (24, 116)
 // (22, 106) -> (22, 116)
 
-type latLon struct {
-	lat float32
-	lon float32
+type LatLon struct {
+	Lat float32 `json:"lat"`
+	Lon float32 `json:"lon"`
 }
 
 type region struct {
-	leftUp    latLon
-	rightUp   latLon
-	leftDown  latLon
-	rightDown latLon
+	leftUp    LatLon
+	rightUp   LatLon
+	leftDown  LatLon
+	rightDown LatLon
 }
 
 var regionMap map[string]region
@@ -73,36 +73,36 @@ func init() {
 	regionMap = make(map[string]region)
 
 	regionMap["north-of-china"] = region{
-		latLon{40.0, 112.0}, latLon{40.0, 118.0},
-		latLon{38.0, 112.0}, latLon{38.0, 118.0},
+		LatLon{40.0, 112.0}, LatLon{40.0, 118.0},
+		LatLon{38.0, 112.0}, LatLon{38.0, 118.0},
 	}
 
 	regionMap["east-of-china"] = region{
-		latLon{32.0, 118.0}, latLon{32.0, 122.0},
-		latLon{28.0, 118.0}, latLon{28.0, 122.0},
+		LatLon{32.0, 118.0}, LatLon{32.0, 122.0},
+		LatLon{28.0, 118.0}, LatLon{28.0, 122.0},
 	}
 
 	regionMap["middle-of-china"] = region{
-		latLon{32.0, 110.0}, latLon{32.0, 117.0},
-		latLon{28.0, 110.0}, latLon{28.0, 117.0},
+		LatLon{32.0, 110.0}, LatLon{32.0, 117.0},
+		LatLon{28.0, 110.0}, LatLon{28.0, 117.0},
 	}
 
 	// south-of-china
 	regionMap["south-of-china"] = region{
-		latLon{24.0, 106.0}, latLon{24.0, 116.0},
-		latLon{22.0, 106.0}, latLon{22.0, 116.0},
+		LatLon{24.0, 106.0}, LatLon{24.0, 116.0},
+		LatLon{22.0, 106.0}, LatLon{22.0, 116.0},
 	}
 }
 
-func generateLocation(r region) latLon {
+func generateLocation(r region) LatLon {
 	v := rand.Float32()
-	lat := r.leftDown.lat + (r.leftUp.lat-r.leftDown.lat)*v
-	lon := r.leftUp.lon + (r.rightUp.lon-r.leftUp.lon)*v
-	return latLon{lat, lon}
+	lat := r.leftDown.Lat + (r.leftUp.Lat-r.leftDown.Lat)*v
+	lon := r.leftUp.Lon + (r.rightUp.Lon-r.leftUp.Lon)*v
+	return LatLon{lat, lon}
 }
 
-func generateDeviceLocations(totalDevices uint32) map[string][]latLon {
-	deviceLocations := make(map[string][]latLon)
+func generateDeviceLocations(totalDevices uint32) map[string][]LatLon {
+	deviceLocations := make(map[string][]LatLon)
 
 	n := int(totalDevices) / len(regionMap)
 	if n == 0 {
@@ -110,7 +110,7 @@ func generateDeviceLocations(totalDevices uint32) map[string][]latLon {
 	}
 
 	for k, v := range regionMap {
-		var locations []latLon
+		var locations []LatLon
 		for i := 0; i < n; i++ {
 			locations = append(locations, generateLocation(v))
 		}
@@ -119,13 +119,13 @@ func generateDeviceLocations(totalDevices uint32) map[string][]latLon {
 	return deviceLocations
 }
 
-func generateTimeSeriesRecord(ts time.Time, devIndex int, region string, location latLon) dataPoint {
+func generateTimeSeriesRecord(ts time.Time, devIndex int, region string, location LatLon) dataPoint {
 	return dataPoint{
 		Devicename:  fmt.Sprintf("dev-%d", devIndex),
 		Region:      region,
 		Version:     "1.0",
-		Lat:         location.lat,
-		Lon:         location.lon,
+		Lat:         location.Lat,
+		Lon:         location.Lon,
 		Battery:     rand.Float32() * 100,
 		Humidity:    uint16(rand.Uint32()) % uint16(100),
 		Temperature: int16(rand.Int31()) % int16(100),
@@ -133,7 +133,7 @@ func generateTimeSeriesRecord(ts time.Time, devIndex int, region string, locatio
 	}
 }
 
-func generateTimeSeriesRecords(totalDevices uint32, locations map[string][]latLon) []dataPoint {
+func generateTimeSeriesRecords(totalDevices uint32, locations map[string][]LatLon) []dataPoint {
 	ts := time.Now()
 
 	records := make([]dataPoint, 0, totalDevices)

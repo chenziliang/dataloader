@@ -60,11 +60,12 @@ func (sc *ServerConfig) Validate() error {
 }
 
 type Settings struct {
-	Concurrency   uint32 `yaml:"concurrency"`
-	BatchSize     uint32 `yaml:"batch_size"`
-	Interval      uint32 `yaml:"interval"`
-	BackFill      uint32 `yaml:"backfill"`
-	TotalEntities uint32 `yaml:"total_entities"`
+	Concurrency    uint32 `yaml:"concurrency"`
+	BatchSize      uint32 `yaml:"batch_size"`
+	Interval       uint32 `yaml:"interval"`
+	BackFill       uint32 `yaml:"backfill"`
+	TotalEntities  uint32 `yaml:"total_entities"`
+	LastRunStateDB string `yaml:"last_run_state_db"`
 }
 
 func (s *Settings) SetDefaults() *Settings {

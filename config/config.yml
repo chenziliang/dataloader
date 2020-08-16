@@ -17,5 +17,6 @@ settings:
   backfill: 24 
   # total emulated enties, hosts, devices etc
   total_entities: 100000
+  last_run_state_db: device_locations.db
 log:
   level: INFO

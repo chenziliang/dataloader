@@ -1,13 +1,18 @@
 package clickhouse
 
 import (
+	"bytes"
+	"compress/gzip"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"strings"
 	"sync"
 	"time"
 
 	"gitlab.com/chenziliang/dataloader/models"
 	"gitlab.com/chenziliang/dataloader/sinks"
+	"gitlab.com/chenziliang/pkg-go/utils"
 
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
@@ -17,7 +22,7 @@ type clickHouse struct {
 	config *models.Config
 	logger *zap.Logger
 
-	devLocations map[string][]latLon
+	devLocations map[string][]LatLon
 
 	db *sqlx.DB
 }
@@ -166,9 +171,77 @@ func (ch *clickHouse) doInsert(records []dataPoint) error {
 }
 
 func (ch *clickHouse) generateDeviceLocations() {
-	ch.logger.Info("start generating locations")
+	dbFile := ch.config.Settings.LastRunStateDB
+	if utils.FileExists(dbFile) {
+		if ch.loadDeviceLocations() == nil {
+			return
+		}
+	}
+
 	ch.devLocations = generateDeviceLocations(ch.config.Settings.TotalEntities)
-	ch.logger.Info("finished generating locations")
+
+	ch.dumpDeviceLocations()
+}
+
+func (ch *clickHouse) dumpDeviceLocations() error {
+	// save the location information for next use
+	dbFile := ch.config.Settings.LastRunStateDB
+	data, err := json.Marshal(&ch.devLocations)
+	if err != nil {
+		ch.logger.Info("failed to marshal device location info", zap.Error(err))
+		return err
+	}
+
+	var buf bytes.Buffer
+	zw := gzip.NewWriter(&buf)
+	if _, err := zw.Write(data); err != nil {
+		ch.logger.Error("failed to compress device location data", zap.Error(err))
+		return err
+	}
+	zw.Close()
+
+	err = ioutil.WriteFile(dbFile, buf.Bytes(), 0644)
+	if err != nil {
+		ch.logger.Error("failed to persitent device location information in db", zap.Error(err))
+	} else {
+		ch.logger.Info("persitented device location information in db")
+	}
+	return err
+}
+
+func (ch *clickHouse) loadDeviceLocations() error {
+	dbFile := ch.config.Settings.LastRunStateDB
+	ch.logger.Info("loading device location", zap.String("device_location_db", dbFile))
+
+	data, err := ioutil.ReadFile(dbFile)
+	if err != nil {
+		ch.logger.Error("failed to read device location db file", zap.Error(err))
+		return err
+	}
+
+	var buf bytes.Buffer
+	buf.Write(data)
+
+	zr, err := gzip.NewReader(&buf)
+	if err != nil {
+		ch.logger.Error("failed to create gzip reader", zap.Error(err))
+		return err
+	}
+	defer zr.Close()
+
+	data, err = ioutil.ReadAll(zr)
+	if err != nil {
+		ch.logger.Error("failed to decompress data", zap.Error(err))
+		return err
+	}
+
+	err = json.Unmarshal(data, &ch.devLocations)
+	if err != nil {
+		ch.logger.Error("failed to load device location db", zap.Error(err))
+	} else {
+		ch.logger.Info("successfully load device location db")
+	}
+	return err
 }
 
 func (ch *clickHouse) Stop() {
