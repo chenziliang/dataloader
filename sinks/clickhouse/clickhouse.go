@@ -3,6 +3,7 @@ package clickhouse
 import (
 	"bytes"
 	"compress/gzip"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -22,7 +23,7 @@ type clickHouse struct {
 	config *models.Config
 	logger *zap.Logger
 
-	devLocations map[string][]LatLon
+	devLocations map[string][]models.LatLon
 
 	db *sqlx.DB
 }
@@ -79,42 +80,40 @@ func getConnectionURL(config *models.ServerConfig) (string, error) {
 }
 
 func (ch *clickHouse) LoadData() {
-	if err := newTimeSeriesTable(ch.db); err != nil {
-		ch.logger.Error("failedto create table", zap.Error(err))
+	var wg sync.WaitGroup
+	for _, typ := range ch.config.Settings.Types {
+		ch.loadDataFor(typ, &wg)
+	}
+	wg.Wait()
+}
+
+func (ch *clickHouse) loadDataFor(typ string, wg *sync.WaitGroup) {
+	if typ == models.METRIC {
+		ch.loadMetricData(wg)
+	} else if typ == models.LOG {
+		ch.loadLogData(wg)
+	}
+}
+
+func (ch *clickHouse) loadMetricData(wg *sync.WaitGroup) {
+	if err := ch.newTimeSeriesTable(); err != nil {
+		ch.logger.Error("failed to create metric table", zap.Error(err))
 		return
 	}
 
 	ch.generateDeviceLocations()
 
-	var wg sync.WaitGroup
-
 	for i := 0; i < int(ch.config.Settings.Concurrency); i++ {
 		wg.Add(1)
-		go ch.doLoadData(i, &wg)
+		go ch.doLoadMetricData(i, wg)
 	}
-
-	wg.Wait()
-
-	/*var rows []struct {
-		Database  string `db:"database"`
-		Name      string `db:"name"`
-		Temporary bool   `db:"is_temporary"`
-	}
-
-	if err := ch.db.Select(&rows, "SELECT database, name, is_temporary FROM system.tables"); err != nil {
-		ch.logger.Error("failed to query system.tables", zap.Error(err))
-	}
-
-	for _, row := range rows {
-		ch.logger.Info("row", zap.String("database", row.Database), zap.String("name", row.Name), zap.Bool("is_temporary", row.Temporary))
-	}*/
 }
 
-func (ch *clickHouse) doLoadData(i int, wg *sync.WaitGroup) {
+func (ch *clickHouse) doLoadMetricData(i int, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	for {
-		records := generateTimeSeriesRecords(ch.config.Settings.TotalEntities, ch.devLocations)
+		records := models.GenerateTimeSeriesRecords(ch.config.Settings.TotalEntities, ch.devLocations)
 		start := time.Now().UnixNano()
 		for n := 0; n < len(records); n += int(ch.config.Settings.BatchSize) {
 			pos := n + int(ch.config.Settings.BatchSize)
@@ -122,52 +121,40 @@ func (ch *clickHouse) doLoadData(i int, wg *sync.WaitGroup) {
 				pos = len(records)
 			}
 
-			ch.doInsert(records[n:pos])
+			ch.doMetricInsert(records[n:pos])
 		}
 		ch.logger.Info("data insert cost", zap.Int64("time", time.Now().UnixNano()-start), zap.Int("total_records", len(records)))
 		time.Sleep(time.Duration(ch.config.Settings.Interval) * time.Second)
 	}
 }
 
-func (ch *clickHouse) doInsert(records []dataPoint) error {
-	tx, err := ch.db.Begin()
-	if err != nil {
-		ch.logger.Error("failed to begin batch", zap.Error(err))
-		return err
-	}
+func (ch *clickHouse) doMetricInsert(records []models.Metric) error {
+	query := "INSERT INTO default.devices (devicename, region, version, lat, lon, battery, humidity, temperature, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?"
 
-	insert := "INSERT INTO default.devices (devicename, region, version, lat, lon, battery, humidity, temperature, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?"
-	stmt, err := tx.Prepare(insert)
-	if err != nil {
-		ch.logger.Error("failed to prepare insert statement", zap.Error(err))
-		return err
-	}
-	defer stmt.Close()
+	return ch.doInsert(
+		func(stmt *sql.Stmt) (int, error) {
+			for _, record := range records {
+				_, err := stmt.Exec(
+					record.Devicename,
+					record.Region,
+					record.Version,
+					record.Lat,
+					record.Lon,
+					record.Battery,
+					record.Humidity,
+					record.Temperature,
+					record.Timestamp,
+				)
+				if err != nil {
+					ch.logger.Error("failed to insert records", zap.Error(err))
+					return 0, err
+				}
+			}
 
-	for _, record := range records {
-		_, err = stmt.Exec(
-			record.Devicename,
-			record.Region,
-			record.Version,
-			record.Lat,
-			record.Lon,
-			record.Battery,
-			record.Humidity,
-			record.Temperature,
-			record.Timestamp,
-		)
-		if err != nil {
-			ch.logger.Error("failed to insert records", zap.Error(err))
-			continue
-		}
-	}
-
-	if err = tx.Commit(); err != nil {
-		ch.logger.Error("failed to commit records", zap.Error(err))
-	}
-
-	ch.logger.Info("inserted records", zap.Int("records", len(records)))
-	return err
+			return len(records), nil
+		},
+		query,
+	)
 }
 
 func (ch *clickHouse) generateDeviceLocations() {
@@ -178,7 +165,7 @@ func (ch *clickHouse) generateDeviceLocations() {
 		}
 	}
 
-	ch.devLocations = generateDeviceLocations(ch.config.Settings.TotalEntities)
+	ch.devLocations = models.GenerateDeviceLocations(ch.config.Settings.TotalEntities)
 
 	ch.dumpDeviceLocations()
 }
@@ -244,6 +231,142 @@ func (ch *clickHouse) loadDeviceLocations() error {
 	return err
 }
 
+func (ch *clickHouse) loadLogData(wg *sync.WaitGroup) {
+	if err := ch.newLogTable(); err != nil {
+		ch.logger.Error("failed to create log table", zap.Error(err))
+		return
+	}
+
+	for i := 0; i < int(ch.config.Settings.Concurrency); i++ {
+		wg.Add(1)
+		go ch.doLoadLogData(i, wg)
+	}
+}
+
+func (ch *clickHouse) doLoadLogData(i int, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	results := make(chan *models.Log, ch.config.Settings.BatchSize)
+	errChan := make(chan error, 2)
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+
+		// 2020.08.14 06:14:04.397465
+		tsRegex := `^\d{4}\.\d{2}\.\d{2}\s+\d{2}:\d{2}:\d{2}\.\d*`
+		err := models.GenerateLogRecords(ch.config.Settings.SampleLogFile, tsRegex, tsRegex, "clickhouse", results)
+		if err != nil {
+			ch.logger.Error("failed to generate log records", zap.Error(err))
+			errChan <- err
+		}
+	}()
+
+	var batches []*models.Log
+	for {
+		select {
+		case record := <-results:
+			if record == nil {
+				ch.doLogInsert(batches)
+				ch.logger.Info("done with log data loading")
+				return
+			}
+
+			batches = append(batches, record)
+			if len(batches) >= int(ch.config.Settings.BatchSize) {
+				ch.doLogInsert(batches)
+				batches = nil
+			}
+
+		case <-errChan:
+			return
+		}
+	}
+}
+
+func (ch *clickHouse) doLogInsert(records []*models.Log) error {
+	query := "INSERT INTO default.logs (data, type, _index_time) VALUES (?, ? ?)"
+
+	return ch.doInsert(
+		func(stmt *sql.Stmt) (int, error) {
+			for _, record := range records {
+				_, err := stmt.Exec(
+					record.Data,
+					record.Type,
+					record.IndexTime,
+				)
+
+				if err != nil {
+					ch.logger.Error("failed to insert records", zap.Error(err))
+					return 0, err
+				}
+			}
+			return len(records), nil
+		},
+		query,
+	)
+}
+
+func (ch *clickHouse) doInsert(prepareFunc func(*sql.Stmt) (int, error), query string) error {
+	tx, err := ch.db.Begin()
+	if err != nil {
+		ch.logger.Error("failed to begin batch", zap.Error(err))
+		return err
+	}
+
+	stmt, err := tx.Prepare(query)
+	if err != nil {
+		ch.logger.Error("failed to prepare insert statement", zap.Error(err))
+		return err
+	}
+	defer stmt.Close()
+
+	n, err := prepareFunc(stmt)
+	if err != nil {
+		return err
+	}
+
+	if err = tx.Commit(); err != nil {
+		ch.logger.Error("failed to commit records", zap.Error(err))
+	} else {
+		ch.logger.Info("inserted records", zap.Int("records", n))
+	}
+
+	return err
+}
+
 func (ch *clickHouse) Stop() {
 	// TODO, graceful teardown
+}
+
+func (ch *clickHouse) newTimeSeriesTable() error {
+	_, err := ch.db.Exec(`
+		CREATE TABLE IF NOT EXISTS default.devices (
+			devicename String,
+			region String,
+			version String,
+			lat Float32 CODEC(Gorilla, LZ4HC(9)),
+			lon Float32 CODEC(Gorilla, LZ4HC(9)),
+			battery Float32 CODEC(Gorilla, LZ4HC),
+			humidity UInt16 CODEC(Delta(2), LZ4HC),
+			temperature Int16 CODEC(Delta(2), LZ4HC),
+			timestamp DateTime Codec(DoubleDelta, LZ4) 
+		) ENGINE = MergeTree()
+		ORDER BY (devicename, timestamp)
+		PARTITION BY (region, toYYYYMM(timestamp))
+	`)
+	return err
+}
+
+func (ch *clickHouse) newLogTable() error {
+	_, err := ch.db.Exec(`
+		CREATE TABLE IF NOT EXISTS default.logs (
+			data String,
+			type String,
+			_index_time DateTime
+		) ENGINE MergeTree()
+		ORDER BY type
+		PARTITION BY (type, toYYYYMMDD(_index_time))
+	`)
+	return err
 }

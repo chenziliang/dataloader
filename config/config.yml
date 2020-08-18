@@ -9,6 +9,9 @@ sink:
       password: admin
   context: 
 settings:
+  types:
+    - metric
+    - log 
   concurrency: 1
   batch_size: 1000
   # interval is in seconds
@@ -17,6 +20,9 @@ settings:
   backfill: 24 
   # total emulated enties, hosts, devices etc
   total_entities: 100000
+
+  # FIXME
   last_run_state_db: device_locations.db
+  sample_log_file: clickhouse-server.log.gz
 log:
   level: INFO

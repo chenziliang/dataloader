@@ -1,14 +1,12 @@
-package clickhouse
+package models
 
 import (
 	"fmt"
 	"math/rand"
 	"time"
-
-	"github.com/jmoiron/sqlx"
 )
 
-type dataPoint struct {
+type Metric struct {
 	Devicename  string    `db:"devicename"`
 	Region      string    `db:"region"`
 	Version     string    `db:"version"`
@@ -18,25 +16,6 @@ type dataPoint struct {
 	Humidity    uint16    `db:"humidity"`
 	Temperature int16     `db:"temperature"`
 	Timestamp   time.Time `db:"timestamp"`
-}
-
-func newTimeSeriesTable(db *sqlx.DB) error {
-	_, err := db.Exec(`
-		CREATE TABLE IF NOT EXISTS default.devices (
-			devicename String,
-			region String,
-			version String,
-			lat Float32 CODEC(LZ4HC(9)),
-			lon Float32 CODEC(LZ4HC(9)),
-			battery Float32 CODEC(LZ4HC),
-			humidity UInt16 CODEC(LZ4HC),
-			temperature Int16 CODEC(LZ4HC),
-			timestamp DateTime CODEC(LZ4HC)
-		) ENGINE = MergeTree()
-		ORDER BY (devicename, timestamp)
-		PARTITION BY (region, toYYYYMM(timestamp))
-	`)
-	return err
 }
 
 // North-of-China
@@ -101,7 +80,7 @@ func generateLocation(r region) LatLon {
 	return LatLon{lat, lon}
 }
 
-func generateDeviceLocations(totalDevices uint32) map[string][]LatLon {
+func GenerateDeviceLocations(totalDevices uint32) map[string][]LatLon {
 	deviceLocations := make(map[string][]LatLon)
 
 	n := int(totalDevices) / len(regionMap)
@@ -119,8 +98,8 @@ func generateDeviceLocations(totalDevices uint32) map[string][]LatLon {
 	return deviceLocations
 }
 
-func generateTimeSeriesRecord(ts time.Time, devIndex int, region string, location LatLon) dataPoint {
-	return dataPoint{
+func generateTimeSeriesRecord(ts time.Time, devIndex int, region string, location LatLon) Metric {
+	return Metric{
 		Devicename:  fmt.Sprintf("dev-%d", devIndex),
 		Region:      region,
 		Version:     "1.0",
@@ -133,10 +112,10 @@ func generateTimeSeriesRecord(ts time.Time, devIndex int, region string, locatio
 	}
 }
 
-func generateTimeSeriesRecords(totalDevices uint32, locations map[string][]LatLon) []dataPoint {
+func GenerateTimeSeriesRecords(totalDevices uint32, locations map[string][]LatLon) []Metric {
 	ts := time.Now()
 
-	records := make([]dataPoint, 0, totalDevices)
+	records := make([]Metric, 0, totalDevices)
 	for k := range regionMap {
 		for i := 0; i < int(totalDevices)/len(regionMap); i++ {
 			records = append(records, generateTimeSeriesRecord(ts, i, k, locations[k][i]))
