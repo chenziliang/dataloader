@@ -97,7 +97,6 @@ func (ch *clickHouse) loadDataFor(typ string, wg *sync.WaitGroup) {
 
 func (ch *clickHouse) loadMetricData(wg *sync.WaitGroup) {
 	if err := ch.newTimeSeriesTable(); err != nil {
-		ch.logger.Error("failed to create metric table", zap.Error(err))
 		return
 	}
 
@@ -233,7 +232,6 @@ func (ch *clickHouse) loadDeviceLocations() error {
 
 func (ch *clickHouse) loadLogData(wg *sync.WaitGroup) {
 	if err := ch.newLogTable(); err != nil {
-		ch.logger.Error("failed to create log table", zap.Error(err))
 		return
 	}
 
@@ -343,18 +341,21 @@ func (ch *clickHouse) newTimeSeriesTable() error {
 	_, err := ch.db.Exec(`
 		CREATE TABLE IF NOT EXISTS default.devices (
 			devicename String,
-			region String,
-			version String,
+			region LowCardinality(String),
+			version LowCardinality(String),
 			lat Float32 CODEC(Gorilla, LZ4HC(9)),
 			lon Float32 CODEC(Gorilla, LZ4HC(9)),
 			battery Float32 CODEC(Gorilla, LZ4HC),
 			humidity UInt16 CODEC(Delta(2), LZ4HC),
 			temperature Int16 CODEC(Delta(2), LZ4HC),
-			timestamp DateTime Codec(DoubleDelta, LZ4) 
+			timestamp DateTime Codec(DoubleDelta, ZSTD) 
 		) ENGINE = MergeTree()
 		ORDER BY (devicename, timestamp)
 		PARTITION BY (region, toYYYYMM(timestamp))
 	`)
+	if err != nil {
+		ch.logger.Error("failed to create metric table", zap.Error(err))
+	}
 	return err
 }
 
@@ -368,5 +369,43 @@ func (ch *clickHouse) newLogTable() error {
 		ORDER BY type
 		PARTITION BY (type, toYYYYMMDD(_index_time))
 	`)
+	if err != nil {
+		ch.logger.Error("failed to create source logs table", zap.Error(err))
+		return err
+	}
+
+	_, err = ch.db.Exec(`
+		CREATE TABLE IF NOT EXISTS default.chlogs (
+			_index_time DateTime Codec(DoubleDelta, ZSTD),
+			_time DateTime Codec(DoubleDelta, ZSTD),
+			thread Int32 Codec(ZSTD),
+			level LowCardinality(FixedString(16)),
+			message String,
+			INDEX levelidx (level) TYPE set(10) GRANULARITY 4,
+			INDEX msgidx (message) TYPE tokenbf_v1(1048576, 2, 133) GRANULARITY 8192
+		) ENGINE MergeTree()
+		ORDER BY _time
+		PARTITION BY toYYYYMMDD(_time)
+	`)
+	if err != nil {
+		ch.logger.Error("failed to create sink logs table", zap.Error(err))
+		return err
+	}
+
+	_, err = ch.db.Exec(`
+		CREATE MATERIALIZED VIEW IF NOT EXISTS default.chlogs_v TO chlogs AS 
+		SELECT 
+		    _index_time,
+		    parseDateTimeBestEffortOrZero(replaceRegexpOne(extract(data, '(?P<timestamp>^[\\d|\\.]+ [\\d|\\.|:]+)'), '(\d{4})\.(\d{2})\.(\d{2})', '\\1-\\2-\\3')) AS _time,
+		    toInt32OrZero(extract(data, '\[\s+(?P<thread>\d+)\s+\]')) AS thread,
+		    extract(data, '\{\}\s+<(?P<level>\w+)+>') AS level,
+		    extract(data, '\{\}\s+<\w+>\s+(?P<message>.+)') AS message
+	    FROM logs WHERE type='clickhouse'
+	`)
+
+	if err != nil {
+		ch.logger.Error("failed to create materialized view", zap.Error(err))
+	}
+
 	return err
 }
