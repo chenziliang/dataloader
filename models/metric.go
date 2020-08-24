@@ -165,9 +165,12 @@ func generateLocation(regions []region) LatLon {
 	rand.Seed(time.Now().UTC().UnixNano())
 	r := regions[rand.Uint32()%uint32(len(regions))]
 
-	v := rand.Float32()
-	lat := r.leftDown.Lat + (r.leftUp.Lat-r.leftDown.Lat)*v
-	lon := r.leftUp.Lon + (r.rightUp.Lon-r.leftUp.Lon)*v
+	latDelta := r.leftUp.Lat - r.leftDown.Lat
+	lonDelta := r.rightUp.Lon - r.leftUp.Lon
+
+	lat := r.leftDown.Lat + latDelta*rand.Float32()
+	lon := r.leftUp.Lon + lonDelta*rand.Float32()
+
 	return LatLon{lat, lon}
 }
 

@@ -19,7 +19,7 @@ settings:
   # backfill is in hours
   backfill: 24 
   # total emulated enties, hosts, devices etc
-  total_entities: 100000
+  total_entities: 10000
 
   # FIXME
   last_run_state_db: device_locations.db
