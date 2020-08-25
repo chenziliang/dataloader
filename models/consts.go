@@ -1,6 +1,7 @@
 package models
 
 const (
-	METRIC = "metric"
-	LOG    = "log"
+	METRIC     = "metric"
+	LOG        = "log"
+	CRIME_CASE = "crime_csv"
 )

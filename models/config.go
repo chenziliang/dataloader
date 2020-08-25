@@ -60,14 +60,14 @@ func (sc *ServerConfig) Validate() error {
 }
 
 type Settings struct {
-	Types          []string `yaml:"types"`
-	Concurrency    uint32   `yaml:"concurrency"`
-	BatchSize      uint32   `yaml:"batch_size"`
-	Interval       uint32   `yaml:"interval"`
-	BackFill       uint32   `yaml:"backfill"`
-	TotalEntities  uint32   `yaml:"total_entities"`
-	LastRunStateDB string   `yaml:"last_run_state_db"`
-	SampleLogFile  string   `yaml:"sample_log_file"`
+	CleanBeforeLoad bool   `yaml:"clean_before_load"`
+	Concurrency     uint32 `yaml:"concurrency"`
+	BatchSize       uint32 `yaml:"batch_size"`
+	Interval        uint32 `yaml:"interval"`
+	BackFill        uint32 `yaml:"backfill"`
+	TotalEntities   uint32 `yaml:"total_entities"`
+	LastRunStateDB  string `yaml:"last_run_state_db"`
+	SampleFile      string `yaml:"sample_file"`
 }
 
 func (s *Settings) SetDefaults() *Settings {
@@ -79,20 +79,36 @@ func (s *Settings) SetDefaults() *Settings {
 		s.BatchSize = 1000
 	}
 
-	if s.Interval == 0 {
-		s.Interval = 5
-	}
-
 	if s.TotalEntities == 0 {
 		s.TotalEntities = 1
 	}
 	return s
 }
 
+type Source struct {
+	Name     string   `yaml:"name"`
+	Type     string   `yaml:"type"`
+	Enabled  bool     `yaml:"enabled"`
+	Settings Settings `yaml:"settings"`
+}
+
+func (source *Source) Validate() error {
+	if source.Name == "" || source.Type == "" {
+		return errors.New("name and type are required for data source")
+	}
+
+	return nil
+}
+
+func (source *Source) SetDefaults() *Source {
+	source.Settings.SetDefaults()
+	return source
+}
+
 type Config struct {
-	Sink     ServerConfig `yaml:"sink"`
-	Settings Settings     `yaml:"settings"`
-	Log      LogConfig    `yaml:"log"`
+	Sink    ServerConfig `yaml:"sink"`
+	Sources []Source     `yaml:"sources"`
+	Log     LogConfig    `yaml:"log"`
 }
 
 func (c *Config) Validate() error {
@@ -104,7 +120,9 @@ func (c *Config) Validate() error {
 }
 
 func (c *Config) SetDefaults() *Config {
-	c.Settings.SetDefaults()
+	for i := range c.Sources {
+		c.Sources[i].SetDefaults()
+	}
 	c.Log.SetDefaults()
 	return c
 }
