@@ -47,7 +47,7 @@ func (ch *clickHouse) doLoadMetricData(source *models.Source, wg *sync.WaitGroup
 }
 
 func (ch *clickHouse) doMetricInsert(records []models.Metric, typ string) error {
-	query := "INSERT INTO default.devices (devicename, region, version, lat, lon, battery, humidity, temperature, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+	query := "INSERT INTO default.devices (devicename, region, version, lat, lon, battery, humidity, temperature, hydraulic_pressure, atmospheric_pressure, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 
 	return ch.doInsert(
 		func(stmt *sql.Stmt) (int, error) {
@@ -61,6 +61,8 @@ func (ch *clickHouse) doMetricInsert(records []models.Metric, typ string) error 
 					records[i].Battery,
 					records[i].Humidity,
 					records[i].Temperature,
+					records[i].HydraulicPressure,
+					records[i].AtmosphericPressure,
 					records[i].Timestamp,
 				)
 				if err != nil {
@@ -167,6 +169,8 @@ func (ch *clickHouse) newTimeSeriesTable(cleanBeforeLoad bool) error {
 			battery Float32 CODEC(Gorilla, LZ4HC),
 			humidity UInt16 CODEC(Delta(2), LZ4HC),
 			temperature Int16 CODEC(Delta(2), LZ4HC),
+			hydraulic_pressure Float32 CODEC(Delta(2), LZ4HC),
+			atmospheric_pressure Float32 CODEC(Delta(2), LZ4HC),
 			timestamp DateTime Codec(DoubleDelta, ZSTD) 
 		) ENGINE = MergeTree()
 		ORDER BY (devicename, timestamp)

@@ -7,15 +7,17 @@ import (
 )
 
 type Metric struct {
-	Devicename  string    `db:"devicename"`
-	Region      string    `db:"region"`
-	Version     string    `db:"version"`
-	Lat         float32   `db:"lat"`
-	Lon         float32   `db:"lon"`
-	Battery     float32   `db:"battery"`
-	Humidity    uint16    `db:"humidity"`
-	Temperature int16     `db:"temperature"`
-	Timestamp   time.Time `db:"timestamp"`
+	Devicename          string    `db:"devicename"`
+	Region              string    `db:"region"`
+	Version             string    `db:"version"`
+	Lat                 float32   `db:"lat"`
+	Lon                 float32   `db:"lon"`
+	Battery             float32   `db:"battery"`
+	Humidity            uint16    `db:"humidity"`
+	Temperature         int16     `db:"temperature"`
+	HydraulicPressure   float32   `db:"hydraulic_pressure"`
+	AtmosphericPressure float32   `db:"atmospheric_pressure"`
+	Timestamp           time.Time `db:"timestamp"`
 }
 
 // North-of-China
@@ -192,16 +194,19 @@ func GenerateDeviceLocations(totalDevices uint32) map[string][]LatLon {
 }
 
 func generateTimeSeriesRecord(ts time.Time, devIndex int, region string, location LatLon) Metric {
+	rand.Seed(time.Now().UTC().UnixNano())
 	return Metric{
-		Devicename:  fmt.Sprintf("dev-%d", devIndex),
-		Region:      region,
-		Version:     "1.0",
-		Lat:         location.Lat,
-		Lon:         location.Lon,
-		Battery:     rand.Float32() * 100,
-		Humidity:    uint16(rand.Uint32()) % uint16(100),
-		Temperature: int16(rand.Int31()) % int16(100),
-		Timestamp:   ts,
+		Devicename:          fmt.Sprintf("dev-%d", devIndex),
+		Region:              region,
+		Version:             "1.0",
+		Lat:                 location.Lat,
+		Lon:                 location.Lon,
+		Battery:             rand.Float32() * 100,
+		Humidity:            uint16(rand.Uint32()) % uint16(100),
+		Temperature:         int16(rand.Int31()) % int16(100),
+		HydraulicPressure:   1000 + rand.Float32()*1000,
+		AtmosphericPressure: 101.3 + rand.Float32()*100,
+		Timestamp:           ts,
 	}
 }
 
