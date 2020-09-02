@@ -60,14 +60,19 @@ func (sc *ServerConfig) Validate() error {
 }
 
 type Settings struct {
-	CleanBeforeLoad bool   `yaml:"clean_before_load"`
-	Concurrency     uint32 `yaml:"concurrency"`
-	BatchSize       uint32 `yaml:"batch_size"`
-	Interval        uint32 `yaml:"interval"`
-	BackFill        uint32 `yaml:"backfill"`
-	TotalEntities   uint32 `yaml:"total_entities"`
-	LastRunStateDB  string `yaml:"last_run_state_db"`
-	SampleFile      string `yaml:"sample_file"`
+	CleanBeforeLoad bool    `yaml:"clean_before_load"`
+	Concurrency     uint32  `yaml:"concurrency"`
+	BatchSize       uint32  `yaml:"batch_size"`
+	Interval        uint32  `yaml:"interval"`
+	InitialBase     float32 `yaml:"initial_base"`
+	Step            float32 `yaml:"step"`
+	Duration        uint32  `yaml:"duration"`
+	MaxValue        float32 `yaml:"max_value"`
+	BackFill        uint32  `yaml:"backfill"`
+	TotalEntities   uint32  `yaml:"total_entities"`
+	Sourcetype      string  `yaml:"sourcetype"`
+	LastRunStateDB  string  `yaml:"last_run_state_db"`
+	SampleFile      string  `yaml:"sample_file"`
 }
 
 func (s *Settings) SetDefaults() *Settings {

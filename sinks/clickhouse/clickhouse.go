@@ -17,7 +17,11 @@ type clickHouse struct {
 	config *models.Config
 	logger *zap.Logger
 
-	devLocations map[string][]models.LatLon
+	devLocations            map[string][]models.LatLon
+	unstructureDevLocations map[string][]models.LatLon
+	personLocations         map[string][]models.LatLon
+
+	lock sync.Mutex
 
 	db *sqlx.DB
 }
@@ -90,6 +94,12 @@ func (ch *clickHouse) loadDataFor(source *models.Source, wg *sync.WaitGroup) {
 		ch.loadLogData(source, wg)
 	} else if source.Type == models.CRIME_CASE {
 		ch.loadCrimeData(source, wg)
+	} else if source.Type == models.PERSON {
+		ch.loadPersonData(source, wg)
+	} else if source.Type == models.UNSTRUCTURE_METRIC {
+		ch.loadUnstructureData(source, wg)
+	} else {
+		ch.logger.Error("unsupported data type", zap.String("type", source.Type))
 	}
 }
 
