@@ -32,7 +32,7 @@ func (ch *clickHouse) doLoadLogData(source *models.Source, wg *sync.WaitGroup, i
 
 		// 2020.08.14 06:14:04.397465
 		tsRegex := `^\d{4}\.\d{2}\.\d{2}\s+\d{2}:\d{2}:\d{2}\.\d*`
-		err := models.GenerateLogRecords(source.Settings.SampleFile, tsRegex, tsRegex, "clickhouse", results)
+		err := models.GenerateLogRecords(source.Settings.SampleFile, tsRegex, tsRegex, "daisy", results)
 		if err != nil {
 			ch.logger.Error("failed to generate log records", zap.Error(err))
 			errChan <- err
@@ -64,14 +64,14 @@ func (ch *clickHouse) doLoadLogData(source *models.Source, wg *sync.WaitGroup, i
 func (ch *clickHouse) doLogInsert(records []*models.Log, source *models.Source) error {
 	time.Sleep(time.Duration(source.Settings.Interval) * time.Second)
 
-	query := "INSERT INTO default.logs (data, type, _index_time) VALUES (?, ? ?)"
+	query := "INSERT INTO default.logs (_raw, sourcetype, _index_time) VALUES (?, ?, ?)"
 
 	return ch.doInsert(
 		func(stmt *sql.Stmt) (int, error) {
 			for i := range records {
 				_, err := stmt.Exec(
 					records[i].Data,
-					records[i].Type,
+					records[i].Sourcetype,
 					records[i].IndexTime,
 				)
 
@@ -110,12 +110,13 @@ func (ch *clickHouse) newLogTable(cleanBeforeLoad bool) error {
 
 	_, err := ch.db.Exec(`
 		CREATE TABLE IF NOT EXISTS default.logs (
-			data String,
-			type String,
-			_index_time DateTime
+			sourcetype String,
+			_raw String,
+			_time DateTime64(3) MATERIALIZED parseDateTime64BestEffortOrZero(replaceRegexpOne(extract(_raw, '(?P<timestamp>^[\\d|\\.]+ [\\d|\\.|:]+)'), '(\d{4})\.(\d{2})\.(\d{2})', '\\1-\\2-\\3')) Codec(DoubleDelta, ZSTD),
+			_index_time DateTime64(3) Codec(DoubleDelta, ZSTD)
 		) ENGINE MergeTree()
-		ORDER BY type
-		PARTITION BY (type, toYYYYMMDD(_index_time))
+		ORDER BY _time 
+		PARTITION BY (sourcetype, toYYYYMMDD(_time))
 	`)
 	if err != nil {
 		ch.logger.Error("failed to create source logs table", zap.Error(err))
@@ -124,8 +125,8 @@ func (ch *clickHouse) newLogTable(cleanBeforeLoad bool) error {
 
 	_, err = ch.db.Exec(`
 		CREATE TABLE IF NOT EXISTS default.chlogs (
-			_index_time DateTime Codec(DoubleDelta, ZSTD),
-			_time DateTime Codec(DoubleDelta, ZSTD),
+			_index_time DateTime64(3) DEFAULT now64(3, 'UTC') Codec(DoubleDelta, ZSTD),
+			_time DateTime64(3) Codec(DoubleDelta, ZSTD),
 			thread Int32 Codec(ZSTD),
 			level LowCardinality(FixedString(16)),
 			message String,
@@ -141,14 +142,14 @@ func (ch *clickHouse) newLogTable(cleanBeforeLoad bool) error {
 	}
 
 	_, err = ch.db.Exec(`
-		CREATE MATERIALIZED VIEW IF NOT EXISTS default.chlogs_v TO chlogs AS 
-		SELECT 
+		CREATE MATERIALIZED VIEW IF NOT EXISTS default.chlogs_v TO chlogs AS
+		SELECT
 		    _index_time,
-		    parseDateTimeBestEffortOrZero(replaceRegexpOne(extract(data, '(?P<timestamp>^[\\d|\\.]+ [\\d|\\.|:]+)'), '(\d{4})\.(\d{2})\.(\d{2})', '\\1-\\2-\\3')) AS _time,
-		    toInt32OrZero(extract(data, '\[\s+(?P<thread>\d+)\s+\]')) AS thread,
-		    extract(data, '\{\}\s+<(?P<level>\w+)+>') AS level,
-		    extract(data, '\{\}\s+<\w+>\s+(?P<message>.+)') AS message
-	    FROM logs WHERE type='clickhouse'
+		    parseDateTime64BestEffortOrZero(replaceRegexpOne(extract(_raw, '(?P<timestamp>^[\\d|\\.]+ [\\d|\\.|:]+)'), '(\d{4})\.(\d{2})\.(\d{2})', '\\1-\\2-\\3')) AS _time,
+		    toInt32OrZero(extract(_raw, '\[\s+(?P<thread>\d+)\s+\]')) AS thread,
+		    extract(_raw, '\{\}\s+<(?P<level>\w+)+>') AS level,
+		    extract(_raw, '\{\}\s+<\w+>\s+(?P<message>.+)') AS message
+	    FROM logs WHERE sourcetype='clickhouse'
 	`)
 
 	if err != nil {

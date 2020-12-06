@@ -1,15 +1,16 @@
 sink:
   type: clickhouse
-  addresses: 
-    - 13.52.251.59:9000
+  addresses:
+     - 123.59.211.245:9000
+     # - ghost:9000
   cred:
     type: basic_auth
     context:
-      username: default
-      password: admin
-  context: 
+      username: default 
+      password:
+  context:
 sources:
-  - name: application log 
+  - name: application log
     type: log
     enabled: true
     settings:
@@ -19,9 +20,9 @@ sources:
       # interval is in seconds
       interval: 2
       sample_file: ../samples/clickhouse-server.log.gz
-  - name: IoT device metric 
-    type: metric 
-    enabled: false 
+  - name: IoT device metric
+    type: metric
+    enabled: false
     settings:
       clean_before_load: true
       concurrency: 1
@@ -31,8 +32,8 @@ sources:
       interval: 5
       last_run_state_db: device_locations.db
   - name: IoT device unstructure metric (pressure)
-    type: unstructure_metric 
-    enabled: true
+    type: unstructure_metric
+    enabled: false
     settings:
       clean_before_load: true
       concurrency: 1
@@ -43,8 +44,8 @@ sources:
       sourcetype: pressure
       last_run_state_db: unstructure_device_locations.db
   - name: IoT device unstructure metric (height)
-    type: unstructure_metric 
-    enabled: true
+    type: unstructure_metric
+    enabled: false
     settings:
       clean_before_load: true
       concurrency: 1
@@ -52,11 +53,11 @@ sources:
       total_entities: 100
       # interval is in seconds
       interval: 1
-      sourcetype: height 
+      sourcetype: height
       last_run_state_db: unstructure_device_locations.db
   - name: IoT device unstructure metric (concentration)
-    type: unstructure_metric 
-    enabled: true
+    type: unstructure_metric
+    enabled: false
     settings:
       clean_before_load: true
       concurrency: 1
@@ -68,11 +69,11 @@ sources:
       step: 1
       max_value: 60
       duration: 30
-      sourcetype: concentration 
+      sourcetype: concentration
       last_run_state_db: unstructure_device_locations.db
-  - name: Person data 
-    type: person 
-    enabled: true
+  - name: Person data
+    type: person
+    enabled: false
     settings:
       clean_before_load: true
       concurrency: 1
@@ -81,9 +82,9 @@ sources:
       # interval is in seconds
       interval: 0
       last_run_state_db: person_locations.db
-  - name: Crime cases 
+  - name: Crime cases
     type: crime_csv
-    enabled: true
+    enabled: false
     settings:
       clean_before_load: true
       concurrency: 1

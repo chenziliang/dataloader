@@ -12,9 +12,9 @@ import (
 )
 
 type Log struct {
-	Data      string    `db:"data"`
-	IndexTime time.Time `db:"_index_time"`
-	Type      string    `db:"type"`
+	Data       string    `db:"_raw"`
+	Sourcetype string    `db:"sourcetype"`
+	IndexTime  time.Time `db:"_index_time"`
 }
 
 func GenerateLogRecords(filename string, timestampRegex string, lineBreakerRegex string, typ string, results chan *Log) error {
@@ -78,9 +78,9 @@ func handleLine(line []byte, aggr [][]byte, tsRegex *regexp.Regexp, lbRegex *reg
 		if len(aggr) > 0 {
 			// project preivous cached line as a single event
 			log := &Log{
-				Data:      string(bytes.Join(aggr, []byte("\n"))),
-				IndexTime: time.Now(),
-				Type:      typ,
+				Data:       string(bytes.Join(aggr, []byte("\n"))),
+				IndexTime:  time.Now(),
+				Sourcetype: typ,
 			}
 			if line != nil {
 				aggr = [][]byte{line}
