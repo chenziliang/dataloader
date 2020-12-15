@@ -11,7 +11,8 @@
             "mode": "debug",
             "program": "${workspaceRoot}/cmd",
             "env": {"GOPRIVATE":"gitlab.com/chenziliang"},
-            "args": ["--config", "${workspaceRoot}/config/config.yml"]
+            "args": ["--config", "${workspaceRoot}/config/config.yml"],
+            "showLog": true
         }
     ]
 }

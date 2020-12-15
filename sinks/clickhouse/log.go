@@ -62,7 +62,7 @@ func (ch *clickHouse) doLoadLogData(source *models.Source, wg *sync.WaitGroup, i
 }
 
 func (ch *clickHouse) doLogInsert(records []*models.Log, source *models.Source) error {
-	time.Sleep(time.Duration(source.Settings.Interval) * time.Second)
+	time.Sleep(time.Duration(source.Settings.Interval) * time.Millisecond)
 
 	query := "INSERT INTO default.logs (_raw, sourcetype, _index_time) VALUES (?, ?, ?)"
 

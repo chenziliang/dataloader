@@ -25,24 +25,39 @@ func (ch *clickHouse) loadMetricData(source *models.Source, wg *sync.WaitGroup) 
 func (ch *clickHouse) doLoadMetricData(source *models.Source, wg *sync.WaitGroup, i int) {
 	defer wg.Done()
 
+	var currentIteration int32
+	var batch []models.Metric
+	batchSize := int(source.Settings.BatchSize)
+
 	for {
 		records := models.GenerateMetrics(source.Settings.TotalEntities, ch.devLocations)
-		start := time.Now().UnixNano()
-		for n := 0; n < len(records); n += int(source.Settings.BatchSize) {
-			pos := n + int(source.Settings.BatchSize)
-			if pos > len(records) {
-				pos = len(records)
-			}
+		batch = append(batch, records...)
 
-			ch.doMetricInsert(records[n:pos], source.Type)
+		if len(batch) >= int(source.Settings.BatchSize) {
+			for n := 0; n < len(batch); n += batchSize {
+				pos := n + batchSize
+				if pos > len(batch) {
+					pos = len(batch)
+				}
+
+				ch.doMetricInsert(batch[n:pos], source.Type)
+				currentIteration += 1
+			}
+			batch = batch[:0]
 		}
-		ch.logger.Info("data insert cost", zap.Int64("time", time.Now().UnixNano()-start), zap.Int("total_records", len(records)))
-		time.Sleep(time.Duration(source.Settings.Interval) * time.Second)
+
+		if source.Settings.Iteration > 0 && currentIteration >= source.Settings.Iteration {
+			break
+		}
+
+		if source.Settings.Interval > 0 {
+			time.Sleep(time.Duration(source.Settings.Interval) * time.Millisecond)
+		}
 	}
 }
 
 func (ch *clickHouse) doMetricInsert(records []models.Metric, typ string) error {
-	query := "INSERT INTO default.devices (devicename, region, city, version, lat, lon, battery, humidity, temperature, hydraulic_pressure, atmospheric_pressure, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+	query := "INSERT INTO default.device_metrics (devicename, region, city, version, lat, lon, battery, humidity, temperature, hydraulic_pressure, atmospheric_pressure, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 
 	return ch.doInsert(
 		func(stmt *sql.Stmt) (int, error) {
@@ -76,7 +91,7 @@ func (ch *clickHouse) doMetricInsert(records []models.Metric, typ string) error 
 
 func (ch *clickHouse) newDeviceTable(cleanBeforeLoad bool) error {
 	if cleanBeforeLoad {
-		if _, err := ch.db.Exec(`DROP TABLE IF EXISTS default.devices`); err != nil {
+		if _, err := ch.db.Exec(`DROP TABLE IF EXISTS default.device_metrics`); err != nil {
 			ch.logger.Error("failed to drop device metrics table", zap.Error(err))
 			return err
 		}
@@ -102,7 +117,7 @@ func (ch *clickHouse) newDeviceTable(cleanBeforeLoad bool) error {
 		PARTITION BY (region, city, toYYYYMMDD(timestamp))
 	`)
 	if err != nil {
-		ch.logger.Error("failed to create devices table", zap.Error(err))
+		ch.logger.Error("failed to create devices metric table", zap.Error(err))
 	}
 	return err
 }

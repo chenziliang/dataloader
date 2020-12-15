@@ -22,7 +22,9 @@ type Metric struct {
 }
 
 func generateMetric(ts time.Time, devIndex int, region string, location LatLon) Metric {
-	rand.Seed(time.Now().UTC().UnixNano())
+	source := rand.NewSource(time.Now().UnixNano())
+	r := rand.New(source)
+
 	return Metric{
 		Devicename:          fmt.Sprintf("%s-BHSH-%05d", location.City, devIndex),
 		Region:              region,
@@ -30,11 +32,11 @@ func generateMetric(ts time.Time, devIndex int, region string, location LatLon) 
 		Version:             "1.0",
 		Lat:                 location.Lat,
 		Lon:                 location.Lon,
-		Battery:             rand.Float32() * 100,
-		Humidity:            uint16(rand.Uint32()) % uint16(100),
-		Temperature:         int16(rand.Int31()) % int16(100),
-		HydraulicPressure:   1000 + rand.Float32()*1000,
-		AtmosphericPressure: 101.3 + rand.Float32()*100,
+		Battery:             r.Float32() * 100,
+		Humidity:            uint16(r.Uint32()) % uint16(100),
+		Temperature:         int16(r.Int31()) % int16(100),
+		HydraulicPressure:   1000 + r.Float32()*1000,
+		AtmosphericPressure: 101.3 + r.Float32()*100,
 		Timestamp:           ts,
 	}
 }

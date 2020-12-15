@@ -5,11 +5,14 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	"gitlab.com/chenziliang/dataloader/models"
 	"gitlab.com/chenziliang/dataloader/sinks"
 
+	_ "github.com/ClickHouse/clickhouse-go"
 	"github.com/jmoiron/sqlx"
+
 	"go.uber.org/zap"
 )
 
@@ -36,6 +39,7 @@ func NewClickHouse(config *models.Config, logger *zap.Logger) (sinks.Sink, error
 		return nil, err
 	}
 
+	logger.Info("open url", zap.String("url", url))
 	db, err := sqlx.Open("clickhouse", url)
 	if err != nil {
 		return nil, err
@@ -55,7 +59,7 @@ func getConnectionURL(config *models.ServerConfig) (string, error) {
 
 	altHosts := strings.Join(config.Addresses[1:], ",")
 	if len(altHosts) > 0 {
-		params = append(params, altHosts)
+		params = append(params, fmt.Sprintf("alt_hosts=%s", altHosts))
 	}
 
 	if config.Cred.Ctx != nil {
@@ -104,6 +108,8 @@ func (ch *clickHouse) loadDataFor(source *models.Source, wg *sync.WaitGroup) {
 }
 
 func (ch *clickHouse) doInsert(prepareFunc func(*sql.Stmt) (int, error), query string, typ string) error {
+	start := time.Now().UnixNano()
+
 	tx, err := ch.db.Begin()
 	if err != nil {
 		ch.logger.Error("failed to begin batch", zap.String("type", typ), zap.Error(err))
@@ -125,7 +131,8 @@ func (ch *clickHouse) doInsert(prepareFunc func(*sql.Stmt) (int, error), query s
 	if err = tx.Commit(); err != nil {
 		ch.logger.Error("failed to commit records", zap.String("type", typ), zap.Error(err))
 	} else {
-		ch.logger.Info("inserted records", zap.String("type", typ), zap.Int("records", n))
+		end := time.Now().UnixNano()
+		ch.logger.Info("inserted records", zap.String("type", typ), zap.Int("records", n), zap.Int64("latency", (end-start)/1000))
 	}
 
 	return err

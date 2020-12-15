@@ -45,7 +45,7 @@ func (ch *clickHouse) doLoadUnstructureMetricData(source *models.Source, wg *syn
 			ch.doUnstructureMetricInsert(records[n:pos], source.Type)
 		}
 		ch.logger.Info("data insert cost", zap.Int64("time", time.Now().UnixNano()-start), zap.Int("total_records", len(records)))
-		time.Sleep(time.Duration(source.Settings.Interval) * time.Second)
+		time.Sleep(time.Duration(source.Settings.Interval) * time.Millisecond)
 	}
 }
 

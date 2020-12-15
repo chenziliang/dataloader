@@ -73,6 +73,7 @@ type Settings struct {
 	Sourcetype      string  `yaml:"sourcetype"`
 	LastRunStateDB  string  `yaml:"last_run_state_db"`
 	SampleFile      string  `yaml:"sample_file"`
+	Iteration       int32   `yaml:"iteration"`
 }
 
 func (s *Settings) SetDefaults() *Settings {
@@ -87,6 +88,7 @@ func (s *Settings) SetDefaults() *Settings {
 	if s.TotalEntities == 0 {
 		s.TotalEntities = 1
 	}
+
 	return s
 }
 
