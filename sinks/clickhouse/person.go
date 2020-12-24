@@ -39,7 +39,7 @@ func (ch *clickHouse) doLoadPersonData(source *models.Source, wg *sync.WaitGroup
 }
 
 func (ch *clickHouse) doPersonInsert(records []models.Person, typ string) error {
-	query := "INSERT INTO default.persons (name, id, age, sex, phone, region, city, address, lat, lon, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+	query := "INSERT INTO default.persons (name, id, age, sex, phone, region, city, address, lat, lon, _time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 
 	return ch.doInsert(
 		func(stmt *sql.Stmt) (int, error) {
@@ -91,7 +91,7 @@ func (ch *clickHouse) newPersonTable(cleanBeforeLoad bool) error {
 			address String,
 			lat Float32 CODEC(Gorilla, LZ4HC(9)),
 			lon Float32 CODEC(Gorilla, LZ4HC(9)),
-			timestamp DateTime Codec(DoubleDelta, ZSTD) 
+			_time DateTime64(3) DEFAULT now64(3, 'UTC') Codec(DoubleDelta, ZSTD) 
 		) ENGINE = MergeTree()
 		ORDER BY (region, city, name)
 		PARTITION BY (region, city)

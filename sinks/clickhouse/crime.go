@@ -116,7 +116,8 @@ func (ch *clickHouse) newCrimeTable(cleanBeforeLoad bool) error {
 			lon Float32 CODEC(Gorilla, LZ4HC(9)),
 			description String,
 			location_description String,
-			primary_type LowCardinality(String)
+			primary_type LowCardinality(String),
+			_time DateTime64(3) DEFAULT now64(3, 'UTC')  
 		) ENGINE = MergeTree()
 		ORDER BY (primary_type)
 	`)

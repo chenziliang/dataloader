@@ -1,12 +1,12 @@
 sink:
   type: clickhouse
   addresses:
-     - 123.59.211.245:9000
-     # - ghost:9000
+     # - 123.59.211.245:9000
+     - ghost:9000
   cred:
     type: basic_auth
     context:
-      username: default 
+      username: ghost
       password:
   context:
 sources:
@@ -22,7 +22,7 @@ sources:
       sample_file: ../samples/clickhouse-server.log.gz
   - name: IoT device metric
     type: metric
-    enabled: false
+    enabled: true
     settings:
       clean_before_load: true
       concurrency: 1
@@ -73,7 +73,7 @@ sources:
       last_run_state_db: unstructure_device_locations.db
   - name: Person data
     type: person
-    enabled: false
+    enabled: true
     settings:
       clean_before_load: true
       concurrency: 1
@@ -84,7 +84,7 @@ sources:
       last_run_state_db: person_locations.db
   - name: Crime cases
     type: crime_csv
-    enabled: false
+    enabled: true
     settings:
       clean_before_load: true
       concurrency: 1

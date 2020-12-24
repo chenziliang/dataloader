@@ -96,7 +96,7 @@ func (ch *clickHouse) newUnstructureDeviceTable(cleanBeforeLoad bool) error {
 			lon Float32 CODEC(Gorilla, LZ4HC(9)),
 			raw String,
 			sourcetype LowCardinality(FixedString(16)),
-			_index_time DateTime Codec(DoubleDelta, ZSTD) 
+			_index_time DateTime64(3) Codec(DoubleDelta, ZSTD) 
 		) ENGINE = MergeTree()
 		ORDER BY (region, city, toYYYYMMDD(_index_time), devicename)
 		PARTITION BY (region, city, toYYYYMMDD(_index_time))

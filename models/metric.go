@@ -18,7 +18,7 @@ type Metric struct {
 	Temperature         int16     `db:"temperature"`
 	HydraulicPressure   float32   `db:"hydraulic_pressure"`
 	AtmosphericPressure float32   `db:"atmospheric_pressure"`
-	Timestamp           time.Time `db:"timestamp"`
+	Timestamp           time.Time `db:"_time"`
 }
 
 func generateMetric(ts time.Time, devIndex int, region string, location LatLon) Metric {

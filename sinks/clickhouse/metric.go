@@ -42,7 +42,7 @@ func (ch *clickHouse) doLoadMetricData(source *models.Source, wg *sync.WaitGroup
 }
 
 func (ch *clickHouse) doMetricInsert(records []models.Metric, typ string) error {
-	query := "INSERT INTO default.devices (devicename, region, city, version, lat, lon, battery, humidity, temperature, hydraulic_pressure, atmospheric_pressure, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+	query := "INSERT INTO default.device_metrics (devicename, region, city, version, lat, lon, battery, humidity, temperature, hydraulic_pressure, atmospheric_pressure, _time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 
 	return ch.doInsert(
 		func(stmt *sql.Stmt) (int, error) {
@@ -76,7 +76,7 @@ func (ch *clickHouse) doMetricInsert(records []models.Metric, typ string) error 
 
 func (ch *clickHouse) newDeviceTable(cleanBeforeLoad bool) error {
 	if cleanBeforeLoad {
-		if _, err := ch.db.Exec(`DROP TABLE IF EXISTS default.devices`); err != nil {
+		if _, err := ch.db.Exec(`DROP TABLE IF EXISTS default.device_metrics`); err != nil {
 			ch.logger.Error("failed to drop device metrics table", zap.Error(err))
 			return err
 		}
@@ -96,10 +96,10 @@ func (ch *clickHouse) newDeviceTable(cleanBeforeLoad bool) error {
 			temperature Int16 CODEC(Delta(2), LZ4HC),
 			hydraulic_pressure Float32 CODEC(Delta(2), LZ4HC),
 			atmospheric_pressure Float32 CODEC(Delta(2), LZ4HC),
-			timestamp DateTime Codec(DoubleDelta, ZSTD) 
+			_time DateTime64(3) DEFAULT now64(3, 'UTC') Codec(DoubleDelta, ZSTD)
 		) ENGINE = MergeTree()
-		ORDER BY (region, city, toYYYYMMDD(timestamp), devicename)
-		PARTITION BY (region, city, toYYYYMMDD(timestamp))
+		ORDER BY (region, city, toYYYYMMDD(_time), devicename)
+		PARTITION BY (region, city, toYYYYMMDD(_time))
 	`)
 	if err != nil {
 		ch.logger.Error("failed to create devices table", zap.Error(err))
