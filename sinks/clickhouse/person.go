@@ -92,7 +92,7 @@ func (ch *clickHouse) newPersonTable(cleanBeforeLoad bool) error {
 			lat Float32 CODEC(Gorilla, LZ4HC(9)),
 			lon Float32 CODEC(Gorilla, LZ4HC(9)),
 			timestamp DateTime Codec(DoubleDelta, ZSTD) 
-		) ENGINE = MergeTree()
+		) ENGINE = DistributedMergeTree(1, 3, rand())
 		ORDER BY (region, city, name)
 		PARTITION BY (region, city)
 	`)

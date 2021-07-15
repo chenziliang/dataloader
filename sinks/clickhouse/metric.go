@@ -3,6 +3,7 @@ package clickhouse
 import (
 	"database/sql"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"gitlab.com/chenziliang/dataloader/models"
@@ -26,24 +27,58 @@ func (ch *clickHouse) doLoadMetricData(source *models.Source, wg *sync.WaitGroup
 	defer wg.Done()
 
 	var currentIteration int32
-	var batch []models.Metric
 	batchSize := int(source.Settings.BatchSize)
+
+	table := "default.metrics"
+	if source.Settings.Table != "" {
+		table = source.Settings.Table
+	}
+
+	start := time.Now().UnixNano()
+	prev := start
 
 	for {
 		records := models.GenerateMetrics(source.Settings.TotalEntities, ch.devLocations)
-		batch = append(batch, records...)
 
-		if len(batch) >= int(source.Settings.BatchSize) {
-			for n := 0; n < len(batch); n += batchSize {
-				pos := n + batchSize
-				if pos > len(batch) {
-					pos = len(batch)
-				}
+		atomic.AddUint64(&ch.ingested, (uint64)(len(records)))
+		atomic.AddUint64(&ch.ingested_total, (uint64)(len(records)))
 
-				ch.doMetricInsert(batch[n:pos], source.Type)
-				currentIteration += 1
+		batch := records
+		for n := 0; n < len(batch); n += batchSize {
+			pos := n + batchSize
+			if pos > len(batch) {
+				pos = len(batch)
 			}
-			batch = batch[:0]
+
+			now := time.Now().UnixNano()
+			ch.doMetricInsert(batch[n:pos], table, source.Type)
+			atomic.AddUint64(&ch.duration, uint64(time.Now().UnixNano()-now))
+			atomic.AddUint64(&ch.duration_total, uint64(time.Now().UnixNano()-now))
+
+			currentIteration += 1
+		}
+
+		now := time.Now().UnixNano()
+		if now-prev >= 2*1000*1000*1000 && i == 0 {
+			/// every 5 seconds
+			prev = now
+
+			ingested_total := atomic.LoadUint64(&ch.ingested_total)
+			duration_total := atomic.LoadUint64(&ch.duration_total) / 1000000 / uint64(source.Settings.Concurrency)
+
+			ingested := atomic.LoadUint64(&ch.ingested)
+			duration := atomic.LoadUint64(&ch.duration) / 1000000 / uint64(source.Settings.Concurrency)
+
+			/// reset to 0
+			atomic.StoreUint64(&ch.ingested, 0)
+			atomic.StoreUint64(&ch.duration, 0)
+
+			if duration == 0 {
+				ch.logger.Warn("Zero duration ???", zap.Uint64("ingested", ingested))
+				continue
+			}
+
+			ch.logger.Info("ingest metrics", zap.Uint64("ingested", ingested), zap.Uint64("duration_ms", duration), zap.Uint64("eps", (ingested*1000)/duration), zap.Uint64("ingested_total", ingested_total), zap.Uint64("duration_total_ms", duration_total), zap.Uint64("overall_eps", (ingested_total*1000)/duration_total))
 		}
 
 		if source.Settings.Iteration > 0 && currentIteration >= source.Settings.Iteration {
@@ -56,8 +91,8 @@ func (ch *clickHouse) doLoadMetricData(source *models.Source, wg *sync.WaitGroup
 	}
 }
 
-func (ch *clickHouse) doMetricInsert(records []models.Metric, typ string) error {
-	query := "INSERT INTO default.device_metrics (devicename, region, city, version, lat, lon, battery, humidity, temperature, hydraulic_pressure, atmospheric_pressure, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+func (ch *clickHouse) doMetricInsert(records []models.Metric, table, typ string) error {
+	query := "INSERT INTO " + table + " (devicename, region, city, version, lat, lon, battery, humidity, temperature, hydraulic_pressure, atmospheric_pressure, _time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 
 	return ch.doInsert(
 		func(stmt *sql.Stmt) (int, error) {
@@ -90,7 +125,8 @@ func (ch *clickHouse) doMetricInsert(records []models.Metric, typ string) error 
 }
 
 func (ch *clickHouse) newDeviceTable(cleanBeforeLoad bool) error {
-	if cleanBeforeLoad {
+	return nil
+	/*if cleanBeforeLoad {
 		if _, err := ch.db.Exec(`DROP TABLE IF EXISTS default.device_metrics`); err != nil {
 			ch.logger.Error("failed to drop device metrics table", zap.Error(err))
 			return err
@@ -98,8 +134,13 @@ func (ch *clickHouse) newDeviceTable(cleanBeforeLoad bool) error {
 		ch.logger.Info("dropped devices table")
 	}
 
+	if _, err := ch.db.Exec(`DESCRIBE TABLE default.device_metrics`); err == nil {
+		ch.logger.Info("devices table exists")
+		return nil
+	}
+
 	_, err := ch.db.Exec(`
-		CREATE TABLE IF NOT EXISTS default.device_metrics (
+		CREATE TABLE IF NOT EXISTS default.metrics (
 			devicename String,
 			region LowCardinality(String),
 			city LowCardinality(String),
@@ -111,13 +152,13 @@ func (ch *clickHouse) newDeviceTable(cleanBeforeLoad bool) error {
 			temperature Int16 CODEC(Delta(2), LZ4HC),
 			hydraulic_pressure Float32 CODEC(Delta(2), LZ4HC),
 			atmospheric_pressure Float32 CODEC(Delta(2), LZ4HC),
-			timestamp DateTime Codec(DoubleDelta, ZSTD) 
-		) ENGINE = MergeTree()
+			_time DateTime64(3) DEFAULT now64(3), Codec(DoubleDelta, ZSTD)
+		) ENGINE = DistributedMergeTree(1, 3, rand(6yui87^YUI*&))
 		ORDER BY (region, city, toYYYYMMDD(timestamp), devicename)
 		PARTITION BY (region, city, toYYYYMMDD(timestamp))
 	`)
 	if err != nil {
 		ch.logger.Error("failed to create devices metric table", zap.Error(err))
 	}
-	return err
+	return err*/
 }

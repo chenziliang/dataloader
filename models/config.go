@@ -60,6 +60,7 @@ func (sc *ServerConfig) Validate() error {
 }
 
 type Settings struct {
+	Table           string  `yaml:"table"`
 	CleanBeforeLoad bool    `yaml:"clean_before_load"`
 	Concurrency     uint32  `yaml:"concurrency"`
 	BatchSize       uint32  `yaml:"batch_size"`

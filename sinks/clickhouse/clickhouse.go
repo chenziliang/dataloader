@@ -3,6 +3,7 @@ package clickhouse
 import (
 	"database/sql"
 	"fmt"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -25,6 +26,12 @@ type clickHouse struct {
 	personLocations         map[string][]models.LatLon
 
 	lock sync.Mutex
+
+	ingested_total uint64
+	duration_total uint64
+
+	ingested uint64
+	duration uint64
 
 	db *sqlx.DB
 }
@@ -73,6 +80,11 @@ func getConnectionURL(config *models.ServerConfig) (string, error) {
 				}
 			}
 		}
+	}
+
+	debug := os.Getenv("dataloader_debug")
+	if debug != "" {
+		params = append(params, fmt.Sprintf("debug=true"))
 	}
 
 	if len(params) > 0 {
@@ -132,7 +144,7 @@ func (ch *clickHouse) doInsert(prepareFunc func(*sql.Stmt) (int, error), query s
 		ch.logger.Error("failed to commit records", zap.String("type", typ), zap.Error(err))
 	} else {
 		end := time.Now().UnixNano()
-		ch.logger.Info("inserted records", zap.String("type", typ), zap.Int("records", n), zap.Int64("latency", (end-start)/1000))
+		ch.logger.Debug("inserted records", zap.String("type", typ), zap.Int("records", n), zap.Int64("latency", (end-start)/1000))
 	}
 
 	return err
