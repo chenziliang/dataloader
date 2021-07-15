@@ -33,6 +33,7 @@ func (ch *clickHouse) doLoadMetricData(source *models.Source, wg *sync.WaitGroup
 	if source.Settings.Table != "" {
 		table = source.Settings.Table
 	}
+	ch.logger.Info("target table", zap.String("table", table))
 
 	start := time.Now().UnixNano()
 	prev := start
