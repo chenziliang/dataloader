@@ -1,7 +1,7 @@
 sink:
   type: clickhouse
   addresses:
-    - ghost:9000
+    - localhost:9000
     # - dae1.bdg.lycc.qihoo.net:9001
     # - 47.254.83.245:9000
     # - 47.88.56.144:9000
@@ -12,7 +12,7 @@ sink:
   cred:
     type: basic_auth
     context:
-      username: default 
+      username: default
       password:
   context:
 sources:
@@ -31,9 +31,9 @@ sources:
     type: metric
     enabled: true
     settings:
-      table: metrics_fire_and_forget
+      table: devices
       clean_before_load: false
-      concurrency: 1
+      concurrency: 4
       batch_size: 10000
       total_entities: 10000
       # interval is in seconds

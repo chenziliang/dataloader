@@ -29,7 +29,7 @@ func (ch *clickHouse) doLoadMetricData(source *models.Source, wg *sync.WaitGroup
 	var currentIteration int32
 	batchSize := int(source.Settings.BatchSize)
 
-	table := "default.metrics"
+	table := "default.devices"
 	if source.Settings.Table != "" {
 		table = source.Settings.Table
 	}
@@ -93,7 +93,7 @@ func (ch *clickHouse) doLoadMetricData(source *models.Source, wg *sync.WaitGroup
 }
 
 func (ch *clickHouse) doMetricInsert(records []models.Metric, table, typ string) error {
-	query := "INSERT INTO " + table + " (devicename, region, city, version, lat, lon, battery, humidity, temperature, hydraulic_pressure, atmospheric_pressure, _time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+	query := "INSERT INTO " + table + " (device, region, city, version, lat, lon, battery, humidity, temperature, hydraulic_pressure, atmospheric_pressure, _time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 
 	return ch.doInsert(
 		func(stmt *sql.Stmt) (int, error) {
