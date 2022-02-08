@@ -33,7 +33,7 @@ sources:
     settings:
       table: devices
       clean_before_load: false
-      concurrency: 4
+      concurrency: 8
       batch_size: 10000
       total_entities: 10000
       # interval is in seconds

@@ -51,35 +51,28 @@ func (ch *clickHouse) doLoadMetricData(source *models.Source, wg *sync.WaitGroup
 				pos = len(batch)
 			}
 
-			now := time.Now().UnixNano()
+			/// now := time.Now().UnixNano()
 			ch.doMetricInsert(batch[n:pos], table, source.Type)
-			atomic.AddUint64(&ch.duration, uint64(time.Now().UnixNano()-now))
-			atomic.AddUint64(&ch.duration_total, uint64(time.Now().UnixNano()-now))
+			/// atomic.AddUint64(&ch.duration, uint64(time.Now().UnixNano()-now))
+			/// atomic.AddUint64(&ch.duration_total, uint64(time.Now().UnixNano()-now))
 
 			currentIteration += 1
 		}
 
 		now := time.Now().UnixNano()
 		if now-prev >= 2*1000*1000*1000 && i == 0 {
-			/// every 5 seconds
-			prev = now
+			current_duration_ms := uint64((now - prev) / 1000000);
+			current_ingested := atomic.LoadUint64(&ch.ingested)
 
 			ingested_total := atomic.LoadUint64(&ch.ingested_total)
-			duration_total := atomic.LoadUint64(&ch.duration_total) / 1000000 / uint64(source.Settings.Concurrency)
-
-			ingested := atomic.LoadUint64(&ch.ingested)
-			duration := atomic.LoadUint64(&ch.duration) / 1000000 / uint64(source.Settings.Concurrency)
+			duration_total_ms := uint64((now - start) / 1000000);
 
 			/// reset to 0
 			atomic.StoreUint64(&ch.ingested, 0)
-			atomic.StoreUint64(&ch.duration, 0)
 
-			if duration == 0 {
-				ch.logger.Warn("Zero duration ???", zap.Uint64("ingested", ingested))
-				continue
-			}
+			ch.logger.Info("ingest metrics", zap.Uint64("ingested", current_ingested), zap.Uint64("duration_ms", current_duration_ms), zap.Uint64("eps", (current_ingested*1000)/current_duration_ms), zap.Uint64("ingested_total", ingested_total), zap.Uint64("duration_total_ms", duration_total_ms), zap.Uint64("overall_eps", (ingested_total*1000)/duration_total_ms))
 
-			ch.logger.Info("ingest metrics", zap.Uint64("ingested", ingested), zap.Uint64("duration_ms", duration), zap.Uint64("eps", (ingested*1000)/duration), zap.Uint64("ingested_total", ingested_total), zap.Uint64("duration_total_ms", duration_total), zap.Uint64("overall_eps", (ingested_total*1000)/duration_total))
+			prev = now
 		}
 
 		if source.Settings.Iteration > 0 && currentIteration >= source.Settings.Iteration {
@@ -93,7 +86,7 @@ func (ch *clickHouse) doLoadMetricData(source *models.Source, wg *sync.WaitGroup
 }
 
 func (ch *clickHouse) doMetricInsert(records []models.Metric, table, typ string) error {
-	query := "INSERT INTO " + table + " (device, region, city, version, lat, lon, battery, humidity, temperature, hydraulic_pressure, atmospheric_pressure, _time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+	query := "INSERT INTO " + table + " (device, region, city, version, lat, lon, battery, humidity, temperature, hydraulic_pressure, atmospheric_pressure, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 
 	return ch.doInsert(
 		func(stmt *sql.Stmt) (int, error) {
