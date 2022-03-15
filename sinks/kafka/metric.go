@@ -1,6 +1,7 @@
 package kafka
 
 import (
+	"bytes"
 	"encoding/json"
 	"sync"
 	"sync/atomic"
@@ -15,7 +16,7 @@ import (
 
 func (writer *kafkaWriter) loadMetricData(source *models.Source, wg *sync.WaitGroup) {
 	if source.Settings.Topic == "" {
-		source.Settings.Topic = "default.device_utils"
+		source.Settings.Topic = "device_utils"
 	}
 
 	if err := writer.newDeviceTopic(source); err != nil {
@@ -41,9 +42,9 @@ func (writer *kafkaWriter) doLoadMetricData(source *models.Source, wg *sync.Wait
 	start := time.Now().UnixNano()
 	prev := start
 
-	records := models.GenerateMetrics(source.Settings.TotalEntities, writer.devLocations)
+	// records := models.GenerateMetrics(source.Settings.TotalEntities, writer.devLocations)
 	for {
-		// records := models.GenerateMetrics(source.Settings.TotalEntities, writer.devLocations)
+		records := models.GenerateMetrics(source.Settings.TotalEntities, writer.devLocations)
 
 		atomic.AddUint64(&writer.ingested, (uint64)(len(records)))
 		atomic.AddUint64(&writer.ingested_total, (uint64)(len(records)))
@@ -65,11 +66,11 @@ func (writer *kafkaWriter) doLoadMetricData(source *models.Source, wg *sync.Wait
 
 		now := time.Now().UnixNano()
 		if now-prev >= 2*1000*1000*1000 && i == 0 {
-			current_duration_ms := uint64((now - prev) / 1000000);
+			current_duration_ms := uint64((now - prev) / 1000000)
 			current_ingested := atomic.LoadUint64(&writer.ingested)
 
 			ingested_total := atomic.LoadUint64(&writer.ingested_total)
-			duration_total_ms := uint64((now - start) / 1000000);
+			duration_total_ms := uint64((now - start) / 1000000)
 
 			/// reset to 0
 			atomic.StoreUint64(&writer.ingested, 0)
@@ -90,6 +91,7 @@ func (writer *kafkaWriter) doLoadMetricData(source *models.Source, wg *sync.Wait
 }
 
 func (writer *kafkaWriter) doMetricInsert(records []models.Metric, topic, typ string) error {
+	var data [][]byte
 	for _, record := range records {
 		payload, err := json.Marshal(record)
 		if err != nil {
@@ -97,17 +99,55 @@ func (writer *kafkaWriter) doMetricInsert(records []models.Metric, topic, typ st
 			return err
 		}
 
-		msg := &sarama.ProducerMessage{
-			Topic: topic,
-			Key:   nil,
-			Value: sarama.StringEncoder(payload),
-		}
-
-		writer.write(msg)
+		data = append(data, payload)
 	}
+
+	batch_payload := bytes.Join(data, []byte("\n"))
+
+	msg := &sarama.ProducerMessage{
+		Topic: topic,
+		Key:   nil,
+		Value: sarama.StringEncoder(batch_payload),
+	}
+
+	writer.write(msg)
+
 	return nil
 }
 
 func (writer *kafkaWriter) newDeviceTopic(source *models.Source) error {
-	return nil
+	topic := source.Settings.Topic
+	metadata, err := writer.admin.DescribeTopics([]string{topic})
+	if err != nil {
+		writer.logger.Error("Failed to describe topic", zap.String("topic", topic), zap.Error(err))
+	}
+
+	if (len(metadata) > 0 && !source.Settings.CleanBeforeLoad) {
+		// Topic exists
+		return nil
+	}
+
+	if source.Settings.CleanBeforeLoad && err == nil {
+		// Topic exists and we need clean it up before data load
+		err = writer.admin.DeleteTopic(topic)
+		if err != nil {
+			writer.logger.Error("Failed to delete topic", zap.String("topic", topic), zap.Error(err))
+			return err
+		} else {
+			writer.logger.Info("Successfully delete topic", zap.String("topic", topic))
+		}
+	}
+
+	err = writer.admin.CreateTopic(topic, &sarama.TopicDetail{
+		NumPartitions:     source.Settings.NumPartitions,
+		ReplicationFactor: source.Settings.ReplicationFactor,
+	}, false)
+
+	if err != nil {
+		writer.logger.Error("Failed to create topic", zap.String("topic", topic), zap.Error(err))
+	} else {
+		writer.logger.Info("Successfully create topic", zap.String("topic", topic))
+	}
+
+	return err
 }

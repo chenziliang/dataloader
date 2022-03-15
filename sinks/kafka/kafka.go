@@ -12,20 +12,21 @@ import (
 )
 
 type kafkaWriter struct {
-	config        *models.Config
+	config *models.Config
 
 	devLocations            map[string][]models.LatLon
 	unstructureDevLocations map[string][]models.LatLon
 	personLocations         map[string][]models.LatLon
 
-	syncProducer  sarama.SyncProducer
+	syncProducer sarama.SyncProducer
+	// admin client
+	admin sarama.ClusterAdmin
 
 	ingested_total uint64
 	duration_total uint64
 
 	ingested uint64
 	duration uint64
-
 
 	logger *zap.Logger
 }
@@ -50,16 +51,26 @@ func NewkafkaWriter(config *models.Config, logger *zap.Logger) (sinks.Sink, erro
 	kconfig.Producer.Flush.Frequency = 500 * time.Millisecond
 
 	syncConfig := sarama.NewConfig()
+	syncConfig.Producer.Return.Successes = true
+
 	syncProducer, err := sarama.NewSyncProducer(config.Sink.Addresses, syncConfig)
 	if err != nil {
-		logger.Error("Failed to kafka sync producer", zap.Error(err))
+		logger.Error("Failed to create kafka sync producer", zap.Error(err))
+		return nil, err
+	}
+
+	adminConfig := sarama.NewConfig()
+	admin, err := sarama.NewClusterAdmin(config.Sink.Addresses, adminConfig)
+	if err != nil {
+		logger.Error("Failed to create kafka admin client", zap.Error(err))
 		return nil, err
 	}
 
 	return &kafkaWriter{
-		config:        config,
-		logger: logger,
-		syncProducer:  syncProducer,
+		config:       config,
+		logger:       logger,
+		syncProducer: syncProducer,
+		admin:        admin,
 	}, nil
 }
 
@@ -104,5 +115,6 @@ func (writer *kafkaWriter) write(msg *sarama.ProducerMessage) error {
 
 func (writer *kafkaWriter) Stop() {
 	writer.syncProducer.Close()
+	writer.admin.Close()
 	writer.logger.Info("kafkaWriter stopped...")
 }

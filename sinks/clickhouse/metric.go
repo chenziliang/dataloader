@@ -19,7 +19,6 @@ func (ch *clickHouse) loadMetricData(source *models.Source, wg *sync.WaitGroup) 
 
 	ch.logger.Info("target table", zap.String("table", source.Settings.Table))
 
-
 	if err := ch.newDeviceTable(source.Settings.Table, source.Settings.CleanBeforeLoad); err != nil {
 		return
 	}
@@ -37,7 +36,6 @@ func (ch *clickHouse) doLoadMetricData(source *models.Source, wg *sync.WaitGroup
 
 	var currentIteration int32
 	batchSize := int(source.Settings.BatchSize)
-
 
 	start := time.Now().UnixNano()
 	prev := start
@@ -66,11 +64,11 @@ func (ch *clickHouse) doLoadMetricData(source *models.Source, wg *sync.WaitGroup
 
 		now := time.Now().UnixNano()
 		if now-prev >= 2*1000*1000*1000 && i == 0 {
-			current_duration_ms := uint64((now - prev) / 1000000);
+			current_duration_ms := uint64((now - prev) / 1000000)
 			current_ingested := atomic.LoadUint64(&ch.ingested)
 
 			ingested_total := atomic.LoadUint64(&ch.ingested_total)
-			duration_total_ms := uint64((now - start) / 1000000);
+			duration_total_ms := uint64((now - start) / 1000000)
 
 			/// reset to 0
 			atomic.StoreUint64(&ch.ingested, 0)

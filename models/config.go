@@ -60,22 +60,24 @@ func (sc *ServerConfig) Validate() error {
 }
 
 type Settings struct {
-	Table           string  `yaml:"table"`
-	Topic		    string  `yaml:"topic"`
-	CleanBeforeLoad bool    `yaml:"clean_before_load"`
-	Concurrency     uint32  `yaml:"concurrency"`
-	BatchSize       uint32  `yaml:"batch_size"`
-	Interval        uint32  `yaml:"interval"`
-	InitialBase     float32 `yaml:"initial_base"`
-	Step            float32 `yaml:"step"`
-	Duration        uint32  `yaml:"duration"`
-	MaxValue        float32 `yaml:"max_value"`
-	BackFill        uint32  `yaml:"backfill"`
-	TotalEntities   uint32  `yaml:"total_entities"`
-	Sourcetype      string  `yaml:"sourcetype"`
-	LastRunStateDB  string  `yaml:"last_run_state_db"`
-	SampleFile      string  `yaml:"sample_file"`
-	Iteration       int32   `yaml:"iteration"`
+	Table             string  `yaml:"table"`
+	Topic             string  `yaml:"topic"`
+	NumPartitions     int32   `yaml:"num_partitions"`
+	ReplicationFactor int16   `yaml:"replication_factor"`
+	CleanBeforeLoad   bool    `yaml:"clean_before_load"`
+	Concurrency       uint32  `yaml:"concurrency"`
+	BatchSize         uint32  `yaml:"batch_size"`
+	Interval          uint32  `yaml:"interval"`
+	InitialBase       float32 `yaml:"initial_base"`
+	Step              float32 `yaml:"step"`
+	Duration          uint32  `yaml:"duration"`
+	MaxValue          float32 `yaml:"max_value"`
+	BackFill          uint32  `yaml:"backfill"`
+	TotalEntities     uint32  `yaml:"total_entities"`
+	Sourcetype        string  `yaml:"sourcetype"`
+	LastRunStateDB    string  `yaml:"last_run_state_db"`
+	SampleFile        string  `yaml:"sample_file"`
+	Iteration         int32   `yaml:"iteration"`
 }
 
 func (s *Settings) SetDefaults() *Settings {
@@ -89,6 +91,14 @@ func (s *Settings) SetDefaults() *Settings {
 
 	if s.TotalEntities == 0 {
 		s.TotalEntities = 1
+	}
+
+	if s.NumPartitions == 0 {
+		s.NumPartitions = 1
+	}
+
+	if s.ReplicationFactor == 0 {
+		s.ReplicationFactor = 1
 	}
 
 	return s

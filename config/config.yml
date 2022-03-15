@@ -15,6 +15,7 @@ sink:
       username: default
       password:
   context:
+
 sources:
   - name: application log
     type: log

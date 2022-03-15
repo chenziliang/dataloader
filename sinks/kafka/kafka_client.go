@@ -12,7 +12,7 @@ import (
 type KafkaClient struct {
 	brokers []string
 	client  sarama.Client
-	logger *zap.Logger
+	logger  *zap.Logger
 }
 
 const (
@@ -42,7 +42,7 @@ func NewKafkaClientFromConfig(brokers []string, config *sarama.Config, logger *z
 	return &KafkaClient{
 		brokers: brokers,
 		client:  client,
-		logger: logger,
+		logger:  logger,
 	}, nil
 }
 
@@ -151,41 +151,41 @@ func (client *KafkaClient) GetProducerOffset(topic string, partition int) (int64
 // (nil, err) for other errors
 func (client *KafkaClient) GetLastBlock(topic string, partition int) ([]byte, error) {
 	/*
-	lastOffset, err := client.GetProducerOffset(topic, partition)
-	if lastOffset == TopicOrPartitionNotExist {
-		return nil, nil
-	} else if err != nil {
-		return nil, err
-	}
-
-	leader, err := client.Leader(topic, partition)
-	if err != nil {
-		return nil, err
-	}
-
-	freq := &sarama.FetchRequest{
-		MaxWaitTime: 1000, // millisec
-		MinBytes:    1,
-	}
-
-	if lastOffset > 0 {
-		lastOffset -= 1
-	}
-
-	freq.AddBlock(topic, int32(partition), lastOffset, 1024)
-	fresp, err := leader.Fetch(freq)
-	if err != nil {
-		client.logger.Error("Failed to get data", zap.String("topic", topic), zap.Int("partition", partition), zap.Error(err))
-		return nil, err
-	}
-
-	msgBlocks := fresp.Blocks[topic][int32(partition)].MsgSet.Messages
-	for i := 0; i < len(msgBlocks); i++ {
-		block := msgBlocks[i]
-		if block.Offset == lastOffset {
-			return block.Msg.Value, nil
+		lastOffset, err := client.GetProducerOffset(topic, partition)
+		if lastOffset == TopicOrPartitionNotExist {
+			return nil, nil
+		} else if err != nil {
+			return nil, err
 		}
-	}
+
+		leader, err := client.Leader(topic, partition)
+		if err != nil {
+			return nil, err
+		}
+
+		freq := &sarama.FetchRequest{
+			MaxWaitTime: 1000, // millisec
+			MinBytes:    1,
+		}
+
+		if lastOffset > 0 {
+			lastOffset -= 1
+		}
+
+		freq.AddBlock(topic, int32(partition), lastOffset, 1024)
+		fresp, err := leader.Fetch(freq)
+		if err != nil {
+			client.logger.Error("Failed to get data", zap.String("topic", topic), zap.Int("partition", partition), zap.Error(err))
+			return nil, err
+		}
+
+		msgBlocks := fresp.Blocks[topic][int32(partition)].MsgSet.Messages
+		for i := 0; i < len(msgBlocks); i++ {
+			block := msgBlocks[i]
+			if block.Offset == lastOffset {
+				return block.Msg.Value, nil
+			}
+		}
 	*/
 	return nil, nil
 }
