@@ -6,16 +6,25 @@ import (
 	"sync/atomic"
 	"time"
 
-	"gitlab.com/chenziliang/dataloader/models"
 	"go.uber.org/zap"
+
+	"gitlab.com/chenziliang/dataloader/models"
+	"gitlab.com/chenziliang/dataloader/sinks"
 )
 
 func (ch *clickHouse) loadMetricData(source *models.Source, wg *sync.WaitGroup) {
-	if err := ch.newDeviceTable(source.Settings.CleanBeforeLoad); err != nil {
+	if source.Settings.Table == "" {
+		source.Settings.Table = "default.device_metrics"
+	}
+
+	ch.logger.Info("target table", zap.String("table", source.Settings.Table))
+
+
+	if err := ch.newDeviceTable(source.Settings.Table, source.Settings.CleanBeforeLoad); err != nil {
 		return
 	}
 
-	ch.devLocations = ch.generateLocations(source, true)
+	ch.devLocations = sinks.GenerateLocations(source, true)
 
 	for i := 0; i < int(source.Settings.Concurrency); i++ {
 		wg.Add(1)
@@ -29,17 +38,13 @@ func (ch *clickHouse) doLoadMetricData(source *models.Source, wg *sync.WaitGroup
 	var currentIteration int32
 	batchSize := int(source.Settings.BatchSize)
 
-	table := "default.devices"
-	if source.Settings.Table != "" {
-		table = source.Settings.Table
-	}
-	ch.logger.Info("target table", zap.String("table", table))
 
 	start := time.Now().UnixNano()
 	prev := start
 
+	records := models.GenerateMetrics(source.Settings.TotalEntities, ch.devLocations)
 	for {
-		records := models.GenerateMetrics(source.Settings.TotalEntities, ch.devLocations)
+		// records := models.GenerateMetrics(source.Settings.TotalEntities, ch.devLocations)
 
 		atomic.AddUint64(&ch.ingested, (uint64)(len(records)))
 		atomic.AddUint64(&ch.ingested_total, (uint64)(len(records)))
@@ -52,7 +57,7 @@ func (ch *clickHouse) doLoadMetricData(source *models.Source, wg *sync.WaitGroup
 			}
 
 			/// now := time.Now().UnixNano()
-			ch.doMetricInsert(batch[n:pos], table, source.Type)
+			ch.doMetricInsert(batch[n:pos], source.Settings.Table, source.Type)
 			/// atomic.AddUint64(&ch.duration, uint64(time.Now().UnixNano()-now))
 			/// atomic.AddUint64(&ch.duration_total, uint64(time.Now().UnixNano()-now))
 
@@ -118,23 +123,22 @@ func (ch *clickHouse) doMetricInsert(records []models.Metric, table, typ string)
 	)
 }
 
-func (ch *clickHouse) newDeviceTable(cleanBeforeLoad bool) error {
-	return nil
-	/*if cleanBeforeLoad {
-		if _, err := ch.db.Exec(`DROP TABLE IF EXISTS default.device_metrics`); err != nil {
+func (ch *clickHouse) newDeviceTable(table string, cleanBeforeLoad bool) error {
+	if cleanBeforeLoad {
+		if _, err := ch.db.Exec(`DROP STREAM IF EXISTS ` + table); err != nil {
 			ch.logger.Error("failed to drop device metrics table", zap.Error(err))
 			return err
 		}
 		ch.logger.Info("dropped devices table")
 	}
 
-	if _, err := ch.db.Exec(`DESCRIBE TABLE default.device_metrics`); err == nil {
+	if _, err := ch.db.Exec(`DESCRIBE STREAM ` + table); err == nil {
 		ch.logger.Info("devices table exists")
 		return nil
 	}
 
 	_, err := ch.db.Exec(`
-		CREATE TABLE IF NOT EXISTS default.metrics (
+		CREATE STREAM IF NOT EXISTS ` + table + ` (
 			devicename String,
 			region LowCardinality(String),
 			city LowCardinality(String),
@@ -147,12 +151,12 @@ func (ch *clickHouse) newDeviceTable(cleanBeforeLoad bool) error {
 			hydraulic_pressure Float32 CODEC(Delta(2), LZ4HC),
 			atmospheric_pressure Float32 CODEC(Delta(2), LZ4HC),
 			_time DateTime64(3) DEFAULT now64(3), Codec(DoubleDelta, ZSTD)
-		) ENGINE = DistributedMergeTree(1, 3, rand(6yui87^YUI*&))
+		) ENGINE = StorageStream(1, 3, rand())
 		ORDER BY (region, city, toYYYYMMDD(timestamp), devicename)
 		PARTITION BY (region, city, toYYYYMMDD(timestamp))
 	`)
 	if err != nil {
 		ch.logger.Error("failed to create devices metric table", zap.Error(err))
 	}
-	return err*/
+	return err
 }

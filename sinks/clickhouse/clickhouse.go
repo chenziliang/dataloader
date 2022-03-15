@@ -12,6 +12,7 @@ import (
 	"gitlab.com/chenziliang/dataloader/sinks"
 
 	_ "github.com/ClickHouse/clickhouse-go"
+
 	"github.com/jmoiron/sqlx"
 
 	"go.uber.org/zap"

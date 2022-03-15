@@ -7,18 +7,18 @@ import (
 )
 
 type Metric struct {
-	Devicename          string    `db:"devicename"`
-	Region              string    `db:"region"`
-	City                string    `db:"city"`
-	Version             string    `db:"version"`
-	Lat                 float32   `db:"lat"`
-	Lon                 float32   `db:"lon"`
-	Battery             float32   `db:"battery"`
-	Humidity            uint16    `db:"humidity"`
-	Temperature         int16     `db:"temperature"`
-	HydraulicPressure   float32   `db:"hydraulic_pressure"`
-	AtmosphericPressure float32   `db:"atmospheric_pressure"`
-	Timestamp           time.Time `db:"timestamp"`
+	Devicename          string    `json:"devicename"`
+	Region              string    `json:"region"`
+	City                string    `json:"city"`
+	Version             string    `json:"version"`
+	Lat                 float32   `json:"lat"`
+	Lon                 float32   `json:"lon"`
+	Battery             float32   `json:"battery"`
+	Humidity            uint16    `json:"humidity"`
+	Temperature         int16     `json:"temperature"`
+	HydraulicPressure   float32   `json:"hydraulic_pressure"`
+	AtmosphericPressure float32   `json:"atmospheric_pressure"`
+	Timestamp           time.Time `json:"timestamp"`
 }
 
 func generateMetric(ts time.Time, devIndex int, region string, location LatLon) Metric {

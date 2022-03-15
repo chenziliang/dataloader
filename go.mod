@@ -4,6 +4,7 @@ go 1.13
 
 require (
 	github.com/ClickHouse/clickhouse-go v1.4.3
+	github.com/Shopify/sarama v1.32.0 // indirect
 	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751 // indirect
 	github.com/alecthomas/units v0.0.0-20210208195552-ff826a37aa15 // indirect
 	github.com/jmoiron/sqlx v1.3.1

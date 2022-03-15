@@ -1,2 +1,4 @@
 cmd/cmd
 cmd/clickhouse-server.log.gz
+cmd/device_locations.db
+device_locations.db

@@ -9,6 +9,7 @@ import (
 
 	// side effects
 	_ "gitlab.com/chenziliang/dataloader/sinks/clickhouse"
+	_ "gitlab.com/chenziliang/dataloader/sinks/kafka"
 
 	// side effects
 	_ "github.com/ClickHouse/clickhouse-go"

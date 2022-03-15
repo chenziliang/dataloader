@@ -1,7 +1,7 @@
 sink:
   type: clickhouse
   addresses:
-    - localhost:9000
+    - localhost:8463
     # - dae1.bdg.lycc.qihoo.net:9001
     # - 47.254.83.245:9000
     # - 47.88.56.144:9000
