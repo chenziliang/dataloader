@@ -137,21 +137,19 @@ func (ch *clickHouse) newDeviceTable(table string, cleanBeforeLoad bool) error {
 
 	_, err := ch.db.Exec(`
 		CREATE STREAM IF NOT EXISTS ` + table + ` (
-			devicename String,
-			region LowCardinality(String),
-			city LowCardinality(String),
-			version LowCardinality(String),
-			lat Float32 CODEC(Gorilla, LZ4HC(9)),
-			lon Float32 CODEC(Gorilla, LZ4HC(9)),
-			battery Float32 CODEC(Gorilla, LZ4HC),
-			humidity UInt16 CODEC(Delta(2), LZ4HC),
-			temperature Int16 CODEC(Delta(2), LZ4HC),
-			hydraulic_pressure Float32 CODEC(Delta(2), LZ4HC),
-			atmospheric_pressure Float32 CODEC(Delta(2), LZ4HC),
-			_time DateTime64(3) DEFAULT now64(3), Codec(DoubleDelta, ZSTD)
-		) ENGINE = StorageStream(1, 3, rand())
-		ORDER BY (region, city, toYYYYMMDD(timestamp), devicename)
-		PARTITION BY (region, city, toYYYYMMDD(timestamp))
+			device string,
+			region string,
+			city string,
+			version string,
+			lat float32 CODEC(Gorilla, LZ4HC(9)),
+			lon float32 CODEC(Gorilla, LZ4HC(9)),
+			battery float32 CODEC(Gorilla, LZ4HC),
+			humidity uint16 CODEC(Delta(2), LZ4HC),
+			temperature int16 CODEC(Delta(2), LZ4HC),
+			hydraulic_pressure float32 CODEC(Delta(2), LZ4HC),
+			atmospheric_pressure float32 CODEC(Delta(2), LZ4HC),
+			timestamp datetime64(3)
+		)
 	`)
 	if err != nil {
 		ch.logger.Error("failed to create devices metric table", zap.Error(err))

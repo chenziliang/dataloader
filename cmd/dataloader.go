@@ -12,7 +12,7 @@ import (
 	_ "gitlab.com/chenziliang/dataloader/sinks/kafka"
 
 	// side effects
-	_ "github.com/ClickHouse/clickhouse-go"
+	_ "github.com/timeplus-io/proton-go-driver/v2"
 
 	"gitlab.com/chenziliang/pkg-go/utils"
 	"go.uber.org/zap"

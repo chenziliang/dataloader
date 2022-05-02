@@ -11,7 +11,7 @@ import (
 	"gitlab.com/chenziliang/dataloader/models"
 	"gitlab.com/chenziliang/dataloader/sinks"
 
-	_ "github.com/ClickHouse/clickhouse-go"
+	_ "github.com/timeplus-io/proton-go-driver/v2"
 
 	"github.com/jmoiron/sqlx"
 
