@@ -89,6 +89,8 @@ func (ch *clickHouse) doLoadMetricData(source *models.Source, wg *sync.WaitGroup
 }
 
 func (ch *clickHouse) doMetricInsert(records []models.Metric, table, typ string) error {
+	now := time.Now()
+
 	query := "INSERT INTO " + table + " (device, region, city, version, lat, lon, battery, humidity, temperature, hydraulic_pressure, atmospheric_pressure, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 
 	return ch.doInsert(
@@ -106,7 +108,7 @@ func (ch *clickHouse) doMetricInsert(records []models.Metric, table, typ string)
 					records[i].Temperature,
 					records[i].HydraulicPressure,
 					records[i].AtmosphericPressure,
-					records[i].Timestamp,
+					now,
 				)
 				if err != nil {
 					ch.logger.Error("failed to insert records", zap.String("type", typ), zap.Error(err))

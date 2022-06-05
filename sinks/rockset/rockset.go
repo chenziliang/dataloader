@@ -174,6 +174,7 @@ func (rc *rockSet) doLoadMetricData(source *models.Source, wg *sync.WaitGroup, i
 }
 
 func (rc *rockSet) doMetricInsert(records []models.Metric, collection, typ string) error {
+	now := time.Now()
 	ctx := context.TODO()
 	var docs []interface{}
 
@@ -190,7 +191,7 @@ func (rc *rockSet) doMetricInsert(records []models.Metric, collection, typ strin
 			"temperature":          records[i].Temperature,
 			"hydraulic_pressure":   records[i].HydraulicPressure,
 			"atmospheric_pressure": records[i].AtmosphericPressure,
-			"timestamp":            records[i].Timestamp,
+			"timestamp":            now,
 		})
 	}
 
