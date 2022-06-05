@@ -2,18 +2,20 @@ sink:
   type: clickhouse
   addresses:
     - localhost:8463
-    # - dae1.bdg.lycc.qihoo.net:9001
-    # - 47.254.83.245:9000
-    # - 47.88.56.144:9000
-    #  - 172.20.65.114:9000
-    #  - 172.20.65.112:9000
-    #  - 172.20.65.113:9000
-
   cred:
     type: basic_auth
     context:
       username: default
       password:
+  context:
+
+  type: rockset 
+  addresses:
+    - https://api.rs2.usw2.rockset.com 
+  cred:
+    type: api_key 
+    context:
+      key: j6OmMOWmSj6v0qWe0dNXpjCqq2Wjpqgi1qSTPiH7Xcok5zIqPMxFJsvbM4Z9Hxlu
   context:
 
 sources:

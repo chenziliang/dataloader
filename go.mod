@@ -8,6 +8,7 @@ require (
 	github.com/alecthomas/units v0.0.0-20210208195552-ff826a37aa15 // indirect
 	github.com/jmoiron/sqlx v1.3.1
 	github.com/pkg/errors v0.9.1
+	github.com/rockset/rockset-go-client v0.14.5 // indirect
 	github.com/rogpeppe/go-internal v1.8.0 // indirect
 	github.com/satori/go.uuid v1.2.0
 	github.com/timeplus-io/proton-go-driver/v2 v2.0.13-0.20220319053838-8c82937698ca

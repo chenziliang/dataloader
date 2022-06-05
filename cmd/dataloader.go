@@ -10,6 +10,7 @@ import (
 	// side effects
 	_ "gitlab.com/chenziliang/dataloader/sinks/clickhouse"
 	_ "gitlab.com/chenziliang/dataloader/sinks/kafka"
+	_ "gitlab.com/chenziliang/dataloader/sinks/rockset"
 
 	// side effects
 	_ "github.com/timeplus-io/proton-go-driver/v2"
