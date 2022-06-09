@@ -1,9 +1,9 @@
 sink:
-  type: rockset 
+  type: rockset
   addresses:
-    - https://api.rs2.usw2.rockset.com 
+    - https://api.rs2.usw2.rockset.com
   cred:
-    type: api_key 
+    type: api_key
     context:
       key: j6OmMOWmSj6v0qWe0dNXpjCqq2Wjpqgi1qSTPiH7Xcok5zIqPMxFJsvbM4Z9Hxlu
   context:
@@ -15,7 +15,7 @@ sources:
     settings:
       table: devices
       clean_before_load: false
-      concurrency: 1
+      concurrency: 32
       batch_size: 1000
       total_entities: 10000
       # interval is in seconds

@@ -125,9 +125,9 @@ func (rc *rockSet) doLoadMetricData(source *models.Source, wg *sync.WaitGroup, i
 	start := time.Now().UnixNano()
 	prev := start
 
-	records := models.GenerateMetrics(source.Settings.TotalEntities, rc.devLocations)
+	// records := models.GenerateMetrics(source.Settings.TotalEntities, rc.devLocations)
 	for {
-		// records := models.GenerateMetrics(source.Settings.TotalEntities, ch.devLocations)
+		records := models.GenerateMetrics(source.Settings.TotalEntities, rc.devLocations)
 
 		atomic.AddUint64(&rc.ingested, (uint64)(len(records)))
 		atomic.AddUint64(&rc.ingested_total, (uint64)(len(records)))
