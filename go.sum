@@ -225,6 +225,8 @@ github.com/stretchr/testify v1.7.1 h1:5TQK59W5E3v0r2duFAb7P95B6hEeOyEnHRa8MjYSMT
 github.com/stretchr/testify v1.7.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/timeplus-io/proton-go-driver/v2 v2.0.13-0.20220319053838-8c82937698ca h1:prHVSClOe04+ssD2Xim8wiVUoh5daL3bGhuP3CtnBvQ=
 github.com/timeplus-io/proton-go-driver/v2 v2.0.13-0.20220319053838-8c82937698ca/go.mod h1:rUs4zvXvKsmuyFpzdJnnid6p8IvRJTa/n/jNQ2B6Dfw=
+github.com/timeplus-io/proton-go-driver/v2 v2.0.18-alpha-stream-batch-insert h1:lhaf8Jsj0rS+LpYIE0l+i8d7F/rb9XO5dpQK7pxKrvk=
+github.com/timeplus-io/proton-go-driver/v2 v2.0.18-alpha-stream-batch-insert/go.mod h1:rUs4zvXvKsmuyFpzdJnnid6p8IvRJTa/n/jNQ2B6Dfw=
 github.com/urfave/cli/v2 v2.3.0/go.mod h1:LJmUH05zAU44vOAcrfzZQKsZbVcdbOG8rtL3/XcUArI=
 github.com/xdg-go/pbkdf2 v1.0.0/go.mod h1:jrpuAogTd400dnrH08LKmI/xc1MbPOebTwRqcT5RDeI=
 github.com/xdg-go/scram v1.1.0/go.mod h1:1WAq6h33pAW+iRreB34OORO2Nf7qel3VV3fjBj+hCSs=

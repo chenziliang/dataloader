@@ -40,9 +40,9 @@ func (ch *clickHouse) doLoadMetricData(source *models.Source, wg *sync.WaitGroup
 	start := time.Now().UnixNano()
 	prev := start
 
-	records := models.GenerateMetrics(source.Settings.TotalEntities, ch.devLocations)
+	// records := models.GenerateMetrics(source.Settings.TotalEntities, ch.devLocations)
 	for {
-		// records := models.GenerateMetrics(source.Settings.TotalEntities, ch.devLocations)
+		records := models.GenerateMetrics(source.Settings.TotalEntities, ch.devLocations)
 
 		atomic.AddUint64(&ch.ingested, (uint64)(len(records)))
 		atomic.AddUint64(&ch.ingested_total, (uint64)(len(records)))

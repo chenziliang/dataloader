@@ -11,7 +11,7 @@ require (
 	github.com/rockset/rockset-go-client v0.14.5 // indirect
 	github.com/rogpeppe/go-internal v1.8.0 // indirect
 	github.com/satori/go.uuid v1.2.0
-	github.com/timeplus-io/proton-go-driver/v2 v2.0.13-0.20220319053838-8c82937698ca
+	github.com/timeplus-io/proton-go-driver/v2 v2.0.18-alpha-stream-batch-insert
 	gitlab.com/chenziliang/pkg-go v0.0.0-20190417053028-3c941937a6e3
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.16.0
