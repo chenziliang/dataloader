@@ -1,4 +1,4 @@
-package clickhouse
+package proton
 
 import (
 	"database/sql"
@@ -18,7 +18,7 @@ import (
 	"go.uber.org/zap"
 )
 
-type clickHouse struct {
+type proton struct {
 	config *models.Config
 	logger *zap.Logger
 
@@ -38,10 +38,10 @@ type clickHouse struct {
 }
 
 func init() {
-	sinks.RegisterSink("clickhouse", NewClickHouse)
+	sinks.RegisterSink("proton", NewProton)
 }
 
-func NewClickHouse(config *models.Config, logger *zap.Logger) (sinks.Sink, error) {
+func NewProton(config *models.Config, logger *zap.Logger) (sinks.Sink, error) {
 	url, err := getConnectionURL(&config.Sink)
 	if err != nil {
 		return nil, err
@@ -53,7 +53,7 @@ func NewClickHouse(config *models.Config, logger *zap.Logger) (sinks.Sink, error
 		return nil, err
 	}
 
-	return &clickHouse{
+	return &proton{
 		config: config,
 		logger: logger,
 		db:     db,
@@ -94,7 +94,7 @@ func getConnectionURL(config *models.ServerConfig) (string, error) {
 	return url, nil
 }
 
-func (ch *clickHouse) LoadData() {
+func (ch *proton) LoadData() {
 	var wg sync.WaitGroup
 	for i := range ch.config.Sources {
 		if ch.config.Sources[i].Enabled {
@@ -104,7 +104,7 @@ func (ch *clickHouse) LoadData() {
 	wg.Wait()
 }
 
-func (ch *clickHouse) loadDataFor(source *models.Source, wg *sync.WaitGroup) {
+func (ch *proton) loadDataFor(source *models.Source, wg *sync.WaitGroup) {
 	if source.Type == models.METRIC {
 		ch.loadMetricData(source, wg)
 	} else if source.Type == models.LOG {
@@ -120,7 +120,7 @@ func (ch *clickHouse) loadDataFor(source *models.Source, wg *sync.WaitGroup) {
 	}
 }
 
-func (ch *clickHouse) doInsert(prepareFunc func(*sql.Stmt) (int, error), query string, typ string) error {
+func (ch *proton) doInsert(prepareFunc func(*sql.Stmt) (int, error), query string, typ string) error {
 	start := time.Now().UnixNano()
 
 	tx, err := ch.db.Begin()
@@ -151,6 +151,6 @@ func (ch *clickHouse) doInsert(prepareFunc func(*sql.Stmt) (int, error), query s
 	return err
 }
 
-func (ch *clickHouse) Stop() {
+func (ch *proton) Stop() {
 	// TODO, graceful teardown
 }

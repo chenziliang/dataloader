@@ -1,4 +1,4 @@
-package clickhouse
+package proton
 
 import (
 	"database/sql"
@@ -9,7 +9,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func (ch *clickHouse) loadLogData(source *models.Source, wg *sync.WaitGroup) {
+func (ch *proton) loadLogData(source *models.Source, wg *sync.WaitGroup) {
 	if err := ch.newLogTable(source.Settings.CleanBeforeLoad); err != nil {
 		return
 	}
@@ -20,7 +20,7 @@ func (ch *clickHouse) loadLogData(source *models.Source, wg *sync.WaitGroup) {
 	}
 }
 
-func (ch *clickHouse) doLoadLogData(source *models.Source, wg *sync.WaitGroup, i int) {
+func (ch *proton) doLoadLogData(source *models.Source, wg *sync.WaitGroup, i int) {
 	defer wg.Done()
 
 	results := make(chan *models.Log, source.Settings.BatchSize)
@@ -61,7 +61,7 @@ func (ch *clickHouse) doLoadLogData(source *models.Source, wg *sync.WaitGroup, i
 	}
 }
 
-func (ch *clickHouse) doLogInsert(records []*models.Log, source *models.Source) error {
+func (ch *proton) doLogInsert(records []*models.Log, source *models.Source) error {
 	time.Sleep(time.Duration(source.Settings.Interval) * time.Millisecond)
 
 	query := "INSERT INTO default.logs (_raw, sourcetype, _index_time) VALUES (?, ?, ?)"
@@ -87,7 +87,7 @@ func (ch *clickHouse) doLogInsert(records []*models.Log, source *models.Source) 
 	)
 }
 
-func (ch *clickHouse) newLogTable(cleanBeforeLoad bool) error {
+func (ch *proton) newLogTable(cleanBeforeLoad bool) error {
 	if cleanBeforeLoad {
 		if _, err := ch.db.Exec(`DROP TABLE IF EXISTS default.logs`); err != nil {
 			ch.logger.Error("failed to drop logs table", zap.Error(err))
@@ -115,7 +115,7 @@ func (ch *clickHouse) newLogTable(cleanBeforeLoad bool) error {
 			_time DateTime64(3) MATERIALIZED parseDateTime64BestEffortOrZero(replaceRegexpOne(extract(_raw, '(?P<timestamp>^[\\d|\\.]+ [\\d|\\.|:]+)'), '(\d{4})\.(\d{2})\.(\d{2})', '\\1-\\2-\\3')) Codec(DoubleDelta, ZSTD),
 			_index_time DateTime64(3) Codec(DoubleDelta, ZSTD)
 		) ENGINE MergeTree()
-		ORDER BY _time 
+		ORDER BY _time
 		PARTITION BY (sourcetype, toYYYYMMDD(_time))
 	`)
 	if err != nil {
@@ -149,7 +149,7 @@ func (ch *clickHouse) newLogTable(cleanBeforeLoad bool) error {
 		    toInt32OrZero(extract(_raw, '\[\s+(?P<thread>\d+)\s+\]')) AS thread,
 		    extract(_raw, '\{\}\s+<(?P<level>\w+)+>') AS level,
 		    extract(_raw, '\{\}\s+<\w+>\s+(?P<message>.+)') AS message
-	    FROM logs WHERE sourcetype='clickhouse'
+	    FROM logs WHERE sourcetype='proton'
 	`)
 
 	if err != nil {

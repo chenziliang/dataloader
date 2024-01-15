@@ -1,4 +1,4 @@
-package clickhouse
+package proton
 
 import (
 	"bytes"
@@ -11,7 +11,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func (ch *clickHouse) generateLocations(source *models.Source, centerized bool) map[string][]models.LatLon {
+func (ch *proton) generateLocations(source *models.Source, centerized bool) map[string][]models.LatLon {
 	dbFile := source.Settings.LastRunStateDB
 	if utils.FileExists(dbFile) {
 		if locations, err := ch.loadLocations(dbFile); err == nil {
@@ -26,7 +26,7 @@ func (ch *clickHouse) generateLocations(source *models.Source, centerized bool) 
 	return locations
 }
 
-func (ch *clickHouse) dumpLocations(locations map[string][]models.LatLon, dbFile string) error {
+func (ch *proton) dumpLocations(locations map[string][]models.LatLon, dbFile string) error {
 	// save the location information for next use
 	data, err := json.Marshal(&locations)
 	if err != nil {
@@ -51,7 +51,7 @@ func (ch *clickHouse) dumpLocations(locations map[string][]models.LatLon, dbFile
 	return err
 }
 
-func (ch *clickHouse) loadLocations(dbFile string) (map[string][]models.LatLon, error) {
+func (ch *proton) loadLocations(dbFile string) (map[string][]models.LatLon, error) {
 	ch.logger.Info("loading locations", zap.String("location_db", dbFile))
 
 	data, err := ioutil.ReadFile(dbFile)

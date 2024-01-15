@@ -1,4 +1,4 @@
-package clickhouse
+package proton
 
 import (
 	"compress/gzip"
@@ -13,7 +13,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func (ch *clickHouse) loadCrimeData(source *models.Source, wg *sync.WaitGroup) {
+func (ch *proton) loadCrimeData(source *models.Source, wg *sync.WaitGroup) {
 	if err := ch.newCrimeTable(source.Settings.CleanBeforeLoad); err != nil {
 		return
 	}
@@ -21,7 +21,7 @@ func (ch *clickHouse) loadCrimeData(source *models.Source, wg *sync.WaitGroup) {
 	ch.doLoadCrimeData(source, wg)
 }
 
-func (ch *clickHouse) doLoadCrimeData(source *models.Source, wg *sync.WaitGroup) {
+func (ch *proton) doLoadCrimeData(source *models.Source, wg *sync.WaitGroup) {
 	f, err := os.Open(source.Settings.SampleFile)
 	if err != nil {
 		ch.logger.Error(
@@ -76,7 +76,7 @@ func (ch *clickHouse) doLoadCrimeData(source *models.Source, wg *sync.WaitGroup)
 	}
 }
 
-func (ch *clickHouse) doCrimeCaseInsert(records []models.CrimeCase, typ string) error {
+func (ch *proton) doCrimeCaseInsert(records []models.CrimeCase, typ string) error {
 	query := "INSERT INTO default.crimes (lat, lon, description, location_description, primary_type) VALUES (?, ?, ?, ?, ?)"
 
 	return ch.doInsert(
@@ -101,7 +101,7 @@ func (ch *clickHouse) doCrimeCaseInsert(records []models.CrimeCase, typ string) 
 	)
 }
 
-func (ch *clickHouse) newCrimeTable(cleanBeforeLoad bool) error {
+func (ch *proton) newCrimeTable(cleanBeforeLoad bool) error {
 	if cleanBeforeLoad {
 		if _, err := ch.db.Exec(`DROP TABLE IF EXISTS default.crimes`); err != nil {
 			ch.logger.Error("failed to drop crimes table", zap.Error(err))

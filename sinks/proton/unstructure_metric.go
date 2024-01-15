@@ -1,4 +1,4 @@
-package clickhouse
+package proton
 
 import (
 	"database/sql"
@@ -9,7 +9,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func (ch *clickHouse) loadUnstructureData(source *models.Source, wg *sync.WaitGroup) {
+func (ch *proton) loadUnstructureData(source *models.Source, wg *sync.WaitGroup) {
 	ch.lock.Lock()
 	if ch.unstructureDevLocations == nil {
 		if err := ch.newUnstructureDeviceTable(source.Settings.CleanBeforeLoad); err != nil {
@@ -27,7 +27,7 @@ func (ch *clickHouse) loadUnstructureData(source *models.Source, wg *sync.WaitGr
 	}
 }
 
-func (ch *clickHouse) doLoadUnstructureMetricData(source *models.Source, wg *sync.WaitGroup, i int) {
+func (ch *proton) doLoadUnstructureMetricData(source *models.Source, wg *sync.WaitGroup, i int) {
 	defer wg.Done()
 
 	deadline := time.Now().Add(time.Second * time.Duration(source.Settings.Duration))
@@ -49,7 +49,7 @@ func (ch *clickHouse) doLoadUnstructureMetricData(source *models.Source, wg *syn
 	}
 }
 
-func (ch *clickHouse) doUnstructureMetricInsert(records []models.UnstructureMetric, typ string) error {
+func (ch *proton) doUnstructureMetricInsert(records []models.UnstructureMetric, typ string) error {
 	query := "INSERT INTO default.unstructure_device_metrics (devicename, region, city, lat, lon, raw, sourcetype, _index_time) VALUES (?, ?, ?, ?, ?, ?, ?)"
 
 	return ch.doInsert(
@@ -78,7 +78,7 @@ func (ch *clickHouse) doUnstructureMetricInsert(records []models.UnstructureMetr
 	)
 }
 
-func (ch *clickHouse) newUnstructureDeviceTable(cleanBeforeLoad bool) error {
+func (ch *proton) newUnstructureDeviceTable(cleanBeforeLoad bool) error {
 	if cleanBeforeLoad {
 		if _, err := ch.db.Exec(`DROP TABLE IF EXISTS default.unstructure_device_metrics`); err != nil {
 			ch.logger.Error("failed to drop unstructure device metrics table", zap.Error(err))
@@ -96,7 +96,7 @@ func (ch *clickHouse) newUnstructureDeviceTable(cleanBeforeLoad bool) error {
 			lon Float32 CODEC(Gorilla, LZ4HC(9)),
 			raw String,
 			sourcetype LowCardinality(FixedString(16)),
-			_index_time DateTime Codec(DoubleDelta, ZSTD) 
+			_index_time DateTime Codec(DoubleDelta, ZSTD)
 		) ENGINE = MergeTree()
 		ORDER BY (region, city, toYYYYMMDD(_index_time), devicename)
 		PARTITION BY (region, city, toYYYYMMDD(_index_time))

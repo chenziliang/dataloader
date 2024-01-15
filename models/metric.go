@@ -15,7 +15,7 @@ type Metric struct {
 	Lon                 float32   `json:"lon"`
 	Battery             float32   `json:"battery"`
 	Humidity            uint16    `json:"humidity"`
-	Temperature         int16     `json:"temperature"`
+	Temperature         float32   `json:"temperature"`
 	HydraulicPressure   float32   `json:"hydraulic_pressure"`
 	AtmosphericPressure float32   `json:"atmospheric_pressure"`
 	Timestamp           time.Time `json:"timestamp"`
@@ -34,7 +34,7 @@ func generateMetric(ts time.Time, devIndex int, region string, location LatLon) 
 		Lon:                 location.Lon,
 		Battery:             r.Float32() * 100,
 		Humidity:            uint16(r.Uint32()) % uint16(100),
-		Temperature:         int16(r.Int31()) % int16(100),
+		Temperature:         r.Float32() * 100,
 		HydraulicPressure:   1000 + r.Float32()*1000,
 		AtmosphericPressure: 101.3 + r.Float32()*100,
 		Timestamp:           ts,

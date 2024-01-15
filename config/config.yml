@@ -1,5 +1,5 @@
 sink:
-  type: clickhouse
+  type: proton
   addresses:
     - localhost:8463
   cred:
@@ -29,7 +29,7 @@ sources:
       batch_size: 10000
       # interval is in seconds
       interval: 2
-      sample_file: ../samples/clickhouse-server.log.gz
+      sample_file: ../samples/proton-server.log.gz
   - name: IoT device metric
     type: metric
     enabled: true

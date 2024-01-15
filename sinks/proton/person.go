@@ -1,4 +1,4 @@
-package clickhouse
+package proton
 
 import (
 	"database/sql"
@@ -9,7 +9,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func (ch *clickHouse) loadPersonData(source *models.Source, wg *sync.WaitGroup) {
+func (ch *proton) loadPersonData(source *models.Source, wg *sync.WaitGroup) {
 	if err := ch.newPersonTable(source.Settings.CleanBeforeLoad); err != nil {
 		return
 	}
@@ -22,7 +22,7 @@ func (ch *clickHouse) loadPersonData(source *models.Source, wg *sync.WaitGroup) 
 	}
 }
 
-func (ch *clickHouse) doLoadPersonData(source *models.Source, wg *sync.WaitGroup, i int) {
+func (ch *proton) doLoadPersonData(source *models.Source, wg *sync.WaitGroup, i int) {
 	defer wg.Done()
 
 	records := models.GeneratePersons(source.Settings.TotalEntities, ch.personLocations)
@@ -38,7 +38,7 @@ func (ch *clickHouse) doLoadPersonData(source *models.Source, wg *sync.WaitGroup
 	ch.logger.Info("data insert cost", zap.Int64("time", time.Now().UnixNano()-start), zap.Int("total_records", len(records)))
 }
 
-func (ch *clickHouse) doPersonInsert(records []models.Person, typ string) error {
+func (ch *proton) doPersonInsert(records []models.Person, typ string) error {
 	query := "INSERT INTO default.persons (name, id, age, sex, phone, region, city, address, lat, lon, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 
 	return ch.doInsert(
@@ -70,7 +70,7 @@ func (ch *clickHouse) doPersonInsert(records []models.Person, typ string) error 
 	)
 }
 
-func (ch *clickHouse) newPersonTable(cleanBeforeLoad bool) error {
+func (ch *proton) newPersonTable(cleanBeforeLoad bool) error {
 	if cleanBeforeLoad {
 		if _, err := ch.db.Exec(`DROP TABLE IF EXISTS default.persons`); err != nil {
 			ch.logger.Error("failed to drop persons table", zap.Error(err))
@@ -91,7 +91,7 @@ func (ch *clickHouse) newPersonTable(cleanBeforeLoad bool) error {
 			address String,
 			lat Float32 CODEC(Gorilla, LZ4HC(9)),
 			lon Float32 CODEC(Gorilla, LZ4HC(9)),
-			timestamp DateTime Codec(DoubleDelta, ZSTD) 
+			timestamp DateTime Codec(DoubleDelta, ZSTD)
 		) ENGINE = DistributedMergeTree(1, 3, rand())
 		ORDER BY (region, city, name)
 		PARTITION BY (region, city)

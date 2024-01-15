@@ -8,8 +8,8 @@ import (
 	"gitlab.com/chenziliang/dataloader/sinks"
 
 	// side effects
-	_ "gitlab.com/chenziliang/dataloader/sinks/clickhouse"
 	_ "gitlab.com/chenziliang/dataloader/sinks/kafka"
+	_ "gitlab.com/chenziliang/dataloader/sinks/proton"
 	_ "gitlab.com/chenziliang/dataloader/sinks/rockset"
 
 	// side effects

@@ -1,4 +1,4 @@
-package clickhouse
+package proton
 
 import (
 	"database/sql"
@@ -12,7 +12,7 @@ import (
 	"gitlab.com/chenziliang/dataloader/sinks"
 )
 
-func (ch *clickHouse) loadMetricData(source *models.Source, wg *sync.WaitGroup) {
+func (ch *proton) loadMetricData(source *models.Source, wg *sync.WaitGroup) {
 	if source.Settings.Table == "" {
 		source.Settings.Table = "default.device_metrics"
 	}
@@ -31,7 +31,7 @@ func (ch *clickHouse) loadMetricData(source *models.Source, wg *sync.WaitGroup) 
 	}
 }
 
-func (ch *clickHouse) doLoadMetricData(source *models.Source, wg *sync.WaitGroup, i int) {
+func (ch *proton) doLoadMetricData(source *models.Source, wg *sync.WaitGroup, i int) {
 	defer wg.Done()
 
 	var currentIteration int32
@@ -88,7 +88,7 @@ func (ch *clickHouse) doLoadMetricData(source *models.Source, wg *sync.WaitGroup
 	}
 }
 
-func (ch *clickHouse) doMetricInsert(records []models.Metric, table, typ string) error {
+func (ch *proton) doMetricInsert(records []models.Metric, table, typ string) error {
 	now := time.Now()
 
 	query := "INSERT INTO " + table + " (device, region, city, version, lat, lon, battery, humidity, temperature, hydraulic_pressure, atmospheric_pressure, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
@@ -123,7 +123,7 @@ func (ch *clickHouse) doMetricInsert(records []models.Metric, table, typ string)
 	)
 }
 
-func (ch *clickHouse) newDeviceTable(table string, cleanBeforeLoad bool) error {
+func (ch *proton) newDeviceTable(table string, cleanBeforeLoad bool) error {
 	if cleanBeforeLoad {
 		if _, err := ch.db.Exec(`DROP STREAM IF EXISTS ` + table); err != nil {
 			ch.logger.Error("failed to drop device metrics table", zap.Error(err))
@@ -137,6 +137,7 @@ func (ch *clickHouse) newDeviceTable(table string, cleanBeforeLoad bool) error {
 		return nil
 	}
 
+	/// ) settings shards=3, storage_type='memory'
 	_, err := ch.db.Exec(`
 		CREATE STREAM IF NOT EXISTS ` + table + ` (
 			device string,
@@ -147,11 +148,11 @@ func (ch *clickHouse) newDeviceTable(table string, cleanBeforeLoad bool) error {
 			lon float32 CODEC(Gorilla, LZ4HC(9)),
 			battery float32 CODEC(Gorilla, LZ4HC),
 			humidity uint16 CODEC(Delta(2), LZ4HC),
-			temperature int16 CODEC(Delta(2), LZ4HC),
+			temperature float32 CODEC(Delta(2), LZ4HC),
 			hydraulic_pressure float32 CODEC(Delta(2), LZ4HC),
 			atmospheric_pressure float32 CODEC(Delta(2), LZ4HC),
 			timestamp datetime64(3)
-		)
+		) SETTINGS shards=3;
 	`)
 	if err != nil {
 		ch.logger.Error("failed to create devices metric table", zap.Error(err))
