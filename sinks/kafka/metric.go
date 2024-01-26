@@ -117,26 +117,28 @@ func (writer *kafkaWriter) doMetricInsert(records []models.Metric, topic, typ st
 
 func (writer *kafkaWriter) newDeviceTopic(source *models.Source) error {
 	hasError := false
+	topicExists := false
 	topic := source.Settings.Topic
 	metadata, err := writer.admin.DescribeTopics([]string{topic})
 	if err != nil {
 		writer.logger.Error("Failed to describe topic", zap.String("topic", topic), zap.Error(err))
 		hasError = true
-	}
+	} else if metadata[0].Err != sarama.ErrNoError {
+		if metadata[0].Err != sarama.ErrUnknownTopicOrPartition {
+			writer.logger.Error("Failed to describe topic", zap.String("topic", topic), zap.String("error", metadata[0].Err.Error()))
+		}
 
-	if len(metadata) == 0 || metadata[0].Err != sarama.ErrNoError {
-		writer.logger.Error("Failed to describe topic", zap.String("topic", topic), zap.String("error", metadata[0].Err.Error()))
 		hasError = true
+	} else {
+		topicExists = true
 	}
 
-	writer.logger.Info("metadata", zap.Any("metadata", metadata))
-	if !hasError && !source.Settings.CleanBeforeLoad {
-		// Topic exists
-		writer.logger.Info("Topic exists", zap.String("topic", topic))
+	if topicExists && !source.Settings.CleanBeforeLoad {
+		writer.logger.Info("Topic already exists", zap.String("topic", topic))
 		return nil
 	}
 
-	if source.Settings.CleanBeforeLoad && !hasError {
+	if source.Settings.CleanBeforeLoad && topicExists {
 		// Topic exists, we need clean it up before data load
 		err = writer.admin.DeleteTopic(topic)
 		if err != nil {
