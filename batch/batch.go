@@ -36,7 +36,6 @@ func example(addr string) error {
 
 	ctx = proton.Context(ctx, proton.WithProgress(func(p *proton.Progress) {
 		fmt.Println("progress: ", p)
-
 	}))
 
 	//if err := conn.Exec(ctx, `DROP STREAM IF EXISTS example`); err != nil {
@@ -60,7 +59,7 @@ func example(addr string) error {
 	defer buffer.Close()
 
 	for i := 0; i < 60; i++ {
-		for j := 0; j < 100000; j++ {
+		for j := 0; j < 1000; j++ {
 			if err := buffer.Append(
 				uint64(i*100000+j),
 				fmt.Sprintf("num_%d_%d", j, i),
@@ -83,9 +82,9 @@ func main() {
 	wg.Add(3)
 
 	cluster := []string{
-		"127.0.0.1:18463",
-		"127.0.0.1:28463",
-		"127.0.0.1:38463",
+		"127.0.0.1:8463",
+		"127.0.0.1:8473",
+		"127.0.0.1:8483",
 	}
 
 	for _, addr := range cluster {

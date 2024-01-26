@@ -40,7 +40,7 @@ func (ch *proton) doLoadMetricData(source *models.Source, wg *sync.WaitGroup, i 
 	start := time.Now().UnixNano()
 	prev := start
 
-	// records := models.GenerateMetrics(source.Settings.TotalEntities, ch.devLocations)
+	/// records := models.GenerateMetrics(source.Settings.TotalEntities, ch.devLocations)
 	for {
 		records := models.GenerateMetrics(source.Settings.TotalEntities, ch.devLocations)
 
@@ -55,7 +55,10 @@ func (ch *proton) doLoadMetricData(source *models.Source, wg *sync.WaitGroup, i 
 			}
 
 			/// now := time.Now().UnixNano()
-			ch.doMetricInsert(batch[n:pos], source.Settings.Table, source.Type)
+			if err := ch.doMetricInsert(batch[n:pos], source.Settings.Table, source.Type); err != nil {
+				time.Sleep(2 * time.Second)
+			}
+
 			/// atomic.AddUint64(&ch.duration, uint64(time.Now().UnixNano()-now))
 			/// atomic.AddUint64(&ch.duration_total, uint64(time.Now().UnixNano()-now))
 
@@ -137,6 +140,7 @@ func (ch *proton) newDeviceTable(table string, cleanBeforeLoad bool) error {
 		return nil
 	}
 
+	///	) SETTINGS shards=1, replication_factor=3, storage_type='streaming';
 	/// ) settings shards=3, storage_type='memory'
 	_, err := ch.db.Exec(`
 		CREATE STREAM IF NOT EXISTS ` + table + ` (
@@ -157,5 +161,7 @@ func (ch *proton) newDeviceTable(table string, cleanBeforeLoad bool) error {
 	if err != nil {
 		ch.logger.Error("failed to create devices metric table", zap.Error(err))
 	}
+
+	time.Sleep(2 * time.Second)
 	return err
 }

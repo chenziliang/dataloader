@@ -13,7 +13,7 @@ sources:
     type: metric
     enabled: true
     settings:
-      clean_before_load: true
+      clean_before_load: false
       concurrency: 10
       batch_size: 1000
       total_entities: 6000

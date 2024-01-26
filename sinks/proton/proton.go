@@ -48,7 +48,7 @@ func NewProton(config *models.Config, logger *zap.Logger) (sinks.Sink, error) {
 	}
 
 	logger.Info("open url", zap.String("url", url))
-	db, err := sqlx.Open("clickhouse", url)
+	db, err := sqlx.Open("proton", url)
 	if err != nil {
 		return nil, err
 	}

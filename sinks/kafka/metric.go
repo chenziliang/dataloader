@@ -122,8 +122,10 @@ func (writer *kafkaWriter) newDeviceTopic(source *models.Source) error {
 		writer.logger.Error("Failed to describe topic", zap.String("topic", topic), zap.Error(err))
 	}
 
-	if len(metadata) > 0 && !source.Settings.CleanBeforeLoad {
+	writer.logger.Info("metadata", zap.Any("metadata", topic))
+	if err == nil && len(metadata) > 0 && !source.Settings.CleanBeforeLoad {
 		// Topic exists
+		writer.logger.Info("Topic exists", zap.String("topic", topic))
 		return nil
 	}
 
