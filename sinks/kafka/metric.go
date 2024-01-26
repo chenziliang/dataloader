@@ -116,19 +116,15 @@ func (writer *kafkaWriter) doMetricInsert(records []models.Metric, topic, typ st
 }
 
 func (writer *kafkaWriter) newDeviceTopic(source *models.Source) error {
-	hasError := false
 	topicExists := false
 	topic := source.Settings.Topic
 	metadata, err := writer.admin.DescribeTopics([]string{topic})
 	if err != nil {
 		writer.logger.Error("Failed to describe topic", zap.String("topic", topic), zap.Error(err))
-		hasError = true
 	} else if metadata[0].Err != sarama.ErrNoError {
 		if metadata[0].Err != sarama.ErrUnknownTopicOrPartition {
 			writer.logger.Error("Failed to describe topic", zap.String("topic", topic), zap.String("error", metadata[0].Err.Error()))
 		}
-
-		hasError = true
 	} else {
 		topicExists = true
 	}
