@@ -55,7 +55,7 @@ func createSpan(traceID, name, service, component string, parent *string, attrs 
 	}, end, spanID
 }
 
-func generateTrace() []TraceSpan {
+func generateTrace(big_span bool) []TraceSpan {
 	traceID := randomID(16)
 	now := time.Now()
 
@@ -121,6 +121,12 @@ func generateTrace() []TraceSpan {
 	spans = append(spans, span4)
 
 	// Payment
+
+	span_ms := time.Millisecond * time.Duration(rand.Intn(20)+25)
+	if big_span {
+		span_ms += time.Millisecond * time.Duration(rand.Intn(1000))
+	}
+
 	span5, _, _ := createSpan(
 		traceID,
 		"Payment - Process Payment", "payment", "payment",
@@ -132,17 +138,21 @@ func generateTrace() []TraceSpan {
 			"payment.currency": "USD",
 		},
 		t3End.Add(-30*time.Millisecond),
-		time.Millisecond*time.Duration(rand.Intn(20)+25),
+		span_ms,
 	)
 	spans = append(spans, span5)
 
 	return spans
 }
 
-func GenerateTraces(totalTraces uint32) [][]TraceSpan {
+func GenerateTraces(totalTraces uint32, generate_one_big_span bool) [][]TraceSpan {
 	records := make([][]TraceSpan, 0, totalTraces)
-	for i := 0; i < int(totalTraces); i++ {
-		records = append(records, generateTrace())
+	for i := 0; i < int(totalTraces)-1; i++ {
+		records = append(records, generateTrace(false))
+	}
+
+	if generate_one_big_span {
+		records = append(records, generateTrace(true))
 	}
 
 	return records

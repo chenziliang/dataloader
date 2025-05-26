@@ -35,8 +35,11 @@ func (ch *proton) doLoadTraceData(source *models.Source, wg *sync.WaitGroup, i i
 	start := time.Now().UnixNano()
 	prev := start
 
+	generate_one_big_span := false
+
 	for {
-		records := models.GenerateTraces(source.Settings.BatchSize)
+		records := models.GenerateTraces(source.Settings.BatchSize, generate_one_big_span)
+		generate_one_big_span = false
 
 		atomic.AddUint64(&ch.ingested, (uint64)(len(records)*len(records[0])))
 		atomic.AddUint64(&ch.ingested_total, (uint64)(len(records)*len(records[0])))
@@ -59,6 +62,7 @@ func (ch *proton) doLoadTraceData(source *models.Source, wg *sync.WaitGroup, i i
 			ch.logger.Info("ingest trace spans", zap.Uint64("ingested", current_ingested), zap.Uint64("duration_ms", current_duration_ms), zap.Uint64("eps", (current_ingested*1000)/current_duration_ms), zap.Uint64("ingested_total", ingested_total), zap.Uint64("duration_total_ms", duration_total_ms), zap.Uint64("overall_eps", (ingested_total*1000)/duration_total_ms))
 
 			prev = now
+			generate_one_big_span = true
 		}
 
 		if source.Settings.Iteration > 0 && currentIteration >= source.Settings.Iteration {
@@ -127,7 +131,9 @@ func (ch *proton) newTraceTable(table string, cleanBeforeLoad bool) error {
 			start_time datetime64(3, 'UTC'),
 			end_time datetime64(3, 'UTC'),
 			attributes map(string, string)
-		) SETTINGS sharding_expr='weak_hash32(trace_id)', shards=8;
+		)
+		ORDER BY (to_start_of_hour(_tp_time), trace_id)
+		SETTINGS sharding_expr='weak_hash32(trace_id)', shards=8;
 	`)
 	if err != nil {
 		ch.logger.Error("failed to create table", zap.String("table", table), zap.Error(err))
