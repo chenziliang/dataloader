@@ -107,6 +107,8 @@ func (ch *proton) LoadData() {
 func (ch *proton) loadDataFor(source *models.Source, wg *sync.WaitGroup) {
 	if source.Type == models.METRIC {
 		ch.loadMetricData(source, wg)
+	} else if source.Type == models.TRACE {
+		ch.loadTraceData(source, wg)
 	} else if source.Type == models.LOG {
 		ch.loadLogData(source, wg)
 	} else if source.Type == models.CRIME_CASE {

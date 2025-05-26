@@ -1,7 +1,7 @@
 sink:
   type: kafka
   addresses:
-    - 192.168.1.100:9092
+    - 10.171.90.253:9092
 
   cred:
     type:
@@ -15,7 +15,7 @@ sources:
     type: metric
     enabled: true
     settings:
-      topic: device_utils
+      topic: device_metrics
       num_partitions: 1
       replication_factor: 1
       clean_before_load: false

@@ -143,7 +143,7 @@ func (ch *proton) newDeviceTable(table string, cleanBeforeLoad bool) error {
 	///	) SETTINGS shards=1, replication_factor=3, storage_type='streaming';
 	/// ) settings shards=3, storage_type='memory'
 	_, err := ch.db.Exec(`
-		CREATE STREAM IF NOT EXISTS ` + table + ` (
+		CREATE STREAM IF NOT EXISTS ` + table  + ` (
 			device string,
 			region string,
 			city string,
@@ -156,7 +156,7 @@ func (ch *proton) newDeviceTable(table string, cleanBeforeLoad bool) error {
 			hydraulic_pressure float32 CODEC(Delta(2), LZ4HC),
 			atmospheric_pressure float32 CODEC(Delta(2), LZ4HC),
 			timestamp datetime64(3)
-		) SETTINGS shards=3;
+		) ORDER BY device SETTINGS shards=1;
 	`)
 	if err != nil {
 		ch.logger.Error("failed to create devices metric table", zap.Error(err))

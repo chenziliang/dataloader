@@ -1,7 +1,7 @@
 sink:
   type: proton
   addresses:
-     - localhost:8463
+     - 127.0.0.1:8463
   cred:
     type: basic_auth
     context:
@@ -11,14 +11,29 @@ sink:
 sources:
   - name: IoT device metric
     type: metric
-    enabled: true
+    enabled: false 
     settings:
+      table: device_metrics
       clean_before_load: false
-      concurrency: 10
-      batch_size: 1000
-      total_entities: 6000
+      concurrency: 8
+      batch_size: 10000
+      total_entities: 10000
       # interval is in seconds
       interval: 0
-      last_run_state_db: device_locations.db
+      last_run_state_db:
+sources:
+  - name: OpenTelemetry traces
+    type: trace 
+    enabled: true
+    settings:
+      table: otel_traces 
+      clean_before_load: false
+      concurrency: 8
+      batch_size: 1000
+      total_entities: 10000
+      # interval is in seconds
+      interval: 0
+      last_run_state_db:
+
 log:
   level: INFO
