@@ -6,18 +6,17 @@ import (
 
 	"gitlab.com/chenziliang/dataloader/models"
 	"gitlab.com/chenziliang/dataloader/sinks"
+	"go.uber.org/zap"
+	"gopkg.in/alecthomas/kingpin.v2"
 
-	// side effects
+	// // side effects
 	_ "gitlab.com/chenziliang/dataloader/sinks/kafka"
 	_ "gitlab.com/chenziliang/dataloader/sinks/proton"
 	_ "gitlab.com/chenziliang/dataloader/sinks/rockset"
 
 	// side effects
 	_ "github.com/timeplus-io/proton-go-driver/v2"
-
 	"gitlab.com/chenziliang/pkg-go/utils"
-	"go.uber.org/zap"
-	"gopkg.in/alecthomas/kingpin.v2"
 )
 
 var (
@@ -47,6 +46,7 @@ func main() {
 		return
 	}
 
+	_ = logger
 	sink, err := sinks.NewSink(c, logger)
 	if err != nil {
 		logger.Error("failed to NewSink", zap.Error(err))

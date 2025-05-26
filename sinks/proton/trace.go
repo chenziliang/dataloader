@@ -2,7 +2,6 @@ package proton
 
 import (
 	"database/sql"
-	"encoding/json"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -79,7 +78,6 @@ func (ch *proton) doTraceSpanInsert(records [][]models.TraceSpan, table, typ str
 		func(stmt *sql.Stmt) (int, error) {
 			for _, trace_spans := range records {
 				for _, trace_span := range trace_spans {
-					attrs, _ := json.Marshal(trace_span.Attributes)
 					_, err := stmt.Exec(
 						trace_span.TraceID,
 						trace_span.SpanID,
@@ -87,7 +85,7 @@ func (ch *proton) doTraceSpanInsert(records [][]models.TraceSpan, table, typ str
 						trace_span.Name,
 						trace_span.StartTime,
 						trace_span.EndTime,
-						attrs,
+						trace_span.Attributes,
 					)
 					if err != nil {
 						ch.logger.Error("failed to insert records", zap.String("type", typ), zap.Error(err))
@@ -128,8 +126,8 @@ func (ch *proton) newTraceTable(table string, cleanBeforeLoad bool) error {
 			name string,
 			start_time datetime64(3, 'UTC'),
 			end_time datetime64(3, 'UTC'),
-			attributes json
-		) SETTINGS sharding_expr=weak_hash32(trace_id), shards=8;
+			attributes map(string, string)
+		) SETTINGS sharding_expr='weak_hash32(trace_id)', shards=8;
 	`)
 	if err != nil {
 		ch.logger.Error("failed to create table", zap.String("table", table), zap.Error(err))

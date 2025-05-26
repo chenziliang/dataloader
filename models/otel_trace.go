@@ -7,13 +7,13 @@ import (
 )
 
 type TraceSpan struct {
-	TraceID      string                 `json:"trace_id"`
-	SpanID       string                 `json:"span_id"`
-	ParentSpanID *string                `json:"parent_span_id"` // nil for root
-	Name         string                 `json:"name"`
-	StartTime    string                 `json:"start_time"`
-	EndTime      string                 `json:"end_time"`
-	Attributes   map[string]interface{} `json:"attributes"`
+	TraceID      string            `json:"trace_id"`
+	SpanID       string            `json:"span_id"`
+	ParentSpanID *string           `json:"parent_span_id"` // nil for root
+	Name         string            `json:"name"`
+	StartTime    time.Time         `json:"start_time"`
+	EndTime      time.Time         `json:"end_time"`
+	Attributes   map[string]string `json:"attributes"`
 }
 
 // Utilities
@@ -27,16 +27,16 @@ func randomID(length int) string {
 	return string(id)
 }
 
-func isoTime(t time.Time) string {
-	return t.UTC().Format("2006-01-02T15:04:05.000Z")
-}
+// func isoTime(t time.Time) string {
+// 	return t.UTC().Format("2006-01-02T15:04:05.000Z")
+// }
 
-func createSpan(traceID, name, service, component string, parent *string, attrs map[string]interface{}, start time.Time, duration time.Duration) (TraceSpan, time.Time, string) {
+func createSpan(traceID, name, service, component string, parent *string, attrs map[string]string, start time.Time, duration time.Duration) (TraceSpan, time.Time, string) {
 	spanID := randomID(8)
 	end := start.Add(duration)
 
 	// Merge attributes
-	attributes := map[string]interface{}{
+	attributes := map[string]string{
 		"service.name": service,
 		"component":    component,
 	}
@@ -49,8 +49,8 @@ func createSpan(traceID, name, service, component string, parent *string, attrs 
 		SpanID:       spanID,
 		ParentSpanID: parent,
 		Name:         name,
-		StartTime:    isoTime(start),
-		EndTime:      isoTime(end),
+		StartTime:    start,
+		EndTime:      end,
 		Attributes:   attributes,
 	}, end, spanID
 }
@@ -66,7 +66,7 @@ func generateTrace() []TraceSpan {
 		traceID,
 		"Frontend Proxy - Receive Request", "frontend-proxy", "proxy",
 		nil,
-		map[string]interface{}{
+		map[string]string{
 			"http.method": "GET",
 			"http.url":    "/checkout",
 		},
@@ -80,7 +80,7 @@ func generateTrace() []TraceSpan {
 		traceID,
 		"Frontend - Handle Checkout", "frontend", "http",
 		&span1ID,
-		map[string]interface{}{
+		map[string]string{
 			"http.method": "GET",
 			"http.route":  "/checkout",
 			"user.id":     "12345",
@@ -95,7 +95,7 @@ func generateTrace() []TraceSpan {
 		traceID,
 		"Checkout - Process Order", "checkout", "checkout",
 		&span2ID,
-		map[string]interface{}{
+		map[string]string{
 			"http.method": "POST",
 			"http.route":  "/process",
 			"order.id":    fmt.Sprintf("ORD-%04d", rand.Intn(9999)),
@@ -110,7 +110,7 @@ func generateTrace() []TraceSpan {
 		traceID,
 		"ProductCatalog - Get Products", "product-catalog", "product-catalog",
 		&span3ID,
-		map[string]interface{}{
+		map[string]string{
 			"http.method":   "GET",
 			"http.route":    "/products",
 			"catalog.query": "all",
@@ -125,7 +125,7 @@ func generateTrace() []TraceSpan {
 		traceID,
 		"Payment - Process Payment", "payment", "payment",
 		&span3ID,
-		map[string]interface{}{
+		map[string]string{
 			"http.method":      "POST",
 			"http.route":       "/pay",
 			"payment.amount":   "49.99",
