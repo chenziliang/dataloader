@@ -1,4 +1,4 @@
-== Build and Run ==
+## Build and Run
 
 ```
 cd cmd && go build
