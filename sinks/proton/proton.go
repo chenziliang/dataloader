@@ -61,14 +61,8 @@ func NewProton(config *models.Config, logger *zap.Logger) (sinks.Sink, error) {
 }
 
 func getConnectionURL(config *models.ServerConfig) (string, error) {
-	url := fmt.Sprintf("tcp://%s", config.Addresses[0])
-
-	var params []string
-
-	altHosts := strings.Join(config.Addresses[1:], ",")
-	if len(altHosts) > 0 {
-		params = append(params, fmt.Sprintf("alt_hosts=%s", altHosts))
-	}
+	var username string
+	var password string
 
 	if config.Cred.Ctx != nil {
 		cred, ok := config.Cred.Ctx.(map[interface{}]interface{})
@@ -77,10 +71,28 @@ func getConnectionURL(config *models.ServerConfig) (string, error) {
 				kk, okk := k.(string)
 				vv, okv := v.(string)
 				if okk && okv {
-					params = append(params, fmt.Sprintf("%s=%s", kk, vv))
+					if kk == "username" {
+						username = vv
+					} else if kk == "password" {
+						password = vv
+					}
 				}
 			}
 		}
+	}
+
+	var url string
+	if len(username) > 0 {
+		url = fmt.Sprintf("tcp://%s:%s@%s", username, password, config.Addresses[0])
+	} else {
+		url = fmt.Sprintf("tcp://%s", config.Addresses[0])
+	}
+
+	var params []string
+
+	altHosts := strings.Join(config.Addresses[1:], ",")
+	if len(altHosts) > 0 {
+		params = append(params, fmt.Sprintf("alt_hosts=%s", altHosts))
 	}
 
 	debug := os.Getenv("dataloader_debug")

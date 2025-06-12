@@ -1,4 +1,5 @@
 cmd/cmd
+cmd/dataloader
 cmd/clickhouse-server.log.gz
 cmd/device_locations.db
 device_locations.db

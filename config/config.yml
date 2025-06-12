@@ -109,5 +109,17 @@ sources:
       # injest only once
       interval: 0
       sample_file: ../samples/crime-cases.csv.gz
+      sources:
+  - name: OpenTelemetry traces
+    type: trace
+    enabled: true
+    settings:
+      table: otel_traces
+      clean_before_load: false
+      concurrency: 8
+      batch_size: 1000
+      total_entities: 10000
+      # interval is in seconds
+      interval: 0
 log:
   level: INFO

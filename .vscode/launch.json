@@ -9,9 +9,9 @@
             "type": "go",
             "request": "launch",
             "mode": "debug",
-            "program": "${workspaceRoot}/cmd",
-            "env": {"GOPRIVATE":"gitlab.com/chenziliang"},
-            "args": ["--config", "${workspaceRoot}/config/config.yml"],
+            "program": "${workspaceRoot}/cmd/",
+            "env": {"GOPRIVATE":"github.com/chenziliang"},
+            "args": ["--config", "${workspaceRoot}/config.yml"],
             "showLog": true
         }
     ]

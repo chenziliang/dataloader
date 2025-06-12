@@ -1,7 +1,7 @@
 package models
 
 import (
-	"io/ioutil"
+	"os"
 
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
@@ -156,7 +156,7 @@ func newConfigFromBytes(data []byte) (*Config, error) {
 }
 
 func newConfigFromFile(filepath string) (*Config, error) {
-	data, err := ioutil.ReadFile(filepath)
+	data, err := os.ReadFile(filepath)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to read config file")
 	}
