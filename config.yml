@@ -5,25 +5,25 @@ sink:
   cred:
     type: basic_auth
     context:
-      username: test 
+      username: test
       password: test1234
   context:
 sources:
   - name: IoT device metric
     type: metric
-    enabled: true 
+    enabled: true
     settings:
       table: device_metrics
       clean_before_load: false
-      concurrency: 1
-      batch_size: 10
-      total_entities: 10
+      concurrency: 8
+      batch_size: 1000
+      total_entities: 1000
       # interval is in seconds
-      interval: 1
+      interval: 0
       last_run_state_db:
   - name: OpenTelemetry traces
     type: trace
-    enabled: false 
+    enabled: false
     settings:
       table: otel_traces
       clean_before_load: false
